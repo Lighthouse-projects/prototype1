@@ -149,7 +149,8 @@ curl -X GET https://api.matchingapp.com/api/profiles/me \
         "is_primary": true,
         "order_index": 0
       }
-    ]
+    ],
+    "default_avatar": "https://cdn.example.com/avatars/default_male.png"
   }
 }
 ```
@@ -234,20 +235,25 @@ curl -X GET https://api.matchingapp.com/api/profiles/550e8400-e29b-41d4-a716-446
         "is_primary": true
       }
     ],
+    "default_avatar": "https://cdn.example.com/avatars/default_female.png",
     "last_active": "2024-01-01T09:00:00Z"
   }
 }
 ```
 
+**注意事項**:
+- imagesが空配列の場合、フロントエンドはdefault_avatarを表示
+- default_avatarはユーザーの性別に応じて自動設定
+
 **レスポンス**: 200 OK  
 **エラー**: 401 Unauthorized, 404 Not Found
 
-## 画像関連
+## 画像・動画関連
 ### POST /api/profiles/images
 **認証**: 必要  
-**説明**: プロフィール画像アップロード
+**説明**: プロフィール画像・動画アップロード
 
-リクエスト例:
+リクエスト例（画像）:
 ```bash
 curl -X POST https://api.matchingapp.com/api/profiles/images \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
@@ -256,7 +262,21 @@ curl -X POST https://api.matchingapp.com/api/profiles/images \
   -F "is_primary=true"
 ```
 
-レスポンス例:
+リクエスト例（動画）:
+```bash
+curl -X POST https://api.matchingapp.com/api/profiles/images \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -F "file=@profile_video.mp4" \
+  -F "order_index=1" \
+  -F "is_primary=false"
+```
+
+**制限事項**:
+- 画像: JPEG, PNG形式、最大10MB
+- 動画: MP4形式、最大20秒、最大50MB
+- 画像・動画合わせて最大5ファイル
+
+レスポンス例（画像）:
 ```json
 {
   "success": true,
@@ -264,8 +284,27 @@ curl -X POST https://api.matchingapp.com/api/profiles/images \
     "id": "image-123",
     "file_path": "https://cdn.example.com/images/user1_new.jpg",
     "file_type": "image",
+    "file_size": 2048576,
     "order_index": 0,
     "is_primary": true,
+    "moderation_status": "pending",
+    "created_at": "2024-01-01T10:00:00Z"
+  }
+}
+```
+
+レスポンス例（動画）:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "video-456",
+    "file_path": "https://cdn.example.com/videos/user1_intro.mp4",
+    "file_type": "video",
+    "file_size": 15728640,
+    "duration": 18,
+    "order_index": 1,
+    "is_primary": false,
     "moderation_status": "pending",
     "created_at": "2024-01-01T10:00:00Z"
   }
