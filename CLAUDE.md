@@ -25,20 +25,24 @@ ask me follow up questions until you have that confidence.
 
 - **フロントエンド**: React Native, Expo
 - **バックエンド**: Supabase
-- **ビデオチャット**: WebRTC (react-native-webrtc), Socket.io
+- **ビデオチャット**: WebRTC (react-native-webrtc), Supabase Realtime
 - **プラットフォーム**: iOS/Android
 
 ## プロジェクト構造
 
 ```
 prototype1/
-├── README.md                    # プロジェクト基本情報
-├── 要件定義書.md                # 詳細な機能要件・非機能要件
-├── docs/                        # 設計ドキュメント格納フォルダー
-│   ├── 00_作成するドキュメント一覧.txt
-│   ├── 01_要件定義テンプレ.txt
-│   └── 01_要件定義INPUT.txt
-└── CLAUDE.md                   # このファイル
+├── README.md                           # プロジェクト基本情報
+├── CLAUDE.md                           # このファイル
+├── 1_要件定義書.md                    # 詳細な機能要件・非機能要件
+├── 2_アーキテクチャ設計書.md           # 技術スタック・アーキテクチャ設計
+├── 3_データベース設計書.md             # DBスキーマ・テーブル設計
+├── 4_API設計書.md                     # REST API仕様書
+├── 5_サイトマップ設計書.md             # 画面遷移・ユーザーフロー
+└── docs/                               # 旧設計ドキュメント格納フォルダー
+    ├── 00_作成するドキュメント一覧.txt
+    ├── 01_要件定義テンプレ.txt
+    └── 01_要件定義INPUT.txt
 ```
 
 ## 主要機能（MVP）
@@ -49,10 +53,10 @@ prototype1/
 
 ## Phase2対応予定機能
 
-- **ビデオチャット機能**: WebRTCを使用した1対1ビデオ通話
+- **ビデオチャット機能**: WebRTCとSupabase Realtimeを使用した1対1ビデオ通話
 
 ## 重要な注意事項
 
 - このプロジェクトは法的コンプライアンス（18歳未満利用禁止、売春防止法など）への配慮が必要
 - セキュリティとプライバシー保護が重要
-- 現在は要件定義・設計フェーズであり、実装コードは未作成
+- 現在は設計フェーズ完了、実装フェーズ開始準備中
