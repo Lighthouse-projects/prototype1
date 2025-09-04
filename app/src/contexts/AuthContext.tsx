@@ -30,19 +30,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [hasProfile, setHasProfile] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // 緊急時の強制ローディング終了（3秒）
-  useEffect(() => {
-    const emergencyTimeout = setTimeout(() => {
-      console.log('🚨 緊急: 3秒経過、強制的にローディング終了')
-      setLoading(false)
-      setUser(null)
-      setSession(null)
-      setHasProfile(null)
-    }, 3000)
-
-    return () => clearTimeout(emergencyTimeout)
-  }, [])
-
   // プロフィール存在確認
   const checkProfile = async (userId: string) => {
     try {
@@ -66,32 +53,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let isMounted = true
 
-    // 非常に短時間でローディングを終了（1秒）
-    const forceLoadingEnd = setTimeout(() => {
-      console.log('強制的にローディング終了（1秒経過）')
-      if (isMounted) {
-        setSession(null)
-        setUser(null)
-        setHasProfile(null)
-        setLoading(false)
-      }
-    }, 1000)
-
-    // 簡素化された初期化
-    const initializeAuth = () => {
+    const initializeAuth = async () => {
       try {
-        console.log('認証初期化（簡素版）')
+        console.log('認証状態初期化開始')
         
-        // 初期状態を即座に設定
-        setSession(null)
-        setUser(null)
-        setHasProfile(null)
-        setLoading(false)
+        // 現在のセッションを取得
+        const { data: { session }, error } = await supabase.auth.getSession()
         
-        clearTimeout(forceLoadingEnd)
+        if (error) {
+          console.error('セッション取得エラー:', error)
+          if (isMounted) {
+            setSession(null)
+            setUser(null)
+            setHasProfile(null)
+            setLoading(false)
+          }
+          return
+        }
+
+        console.log('初期セッション:', session?.user?.email || '未認証')
+        
+        if (isMounted) {
+          setSession(session)
+          setUser(session?.user ?? null)
+          
+          if (session?.user) {
+            // ユーザーが認証済みの場合、プロフィール確認
+            await checkProfile(session.user.id)
+          } else {
+            setHasProfile(null)
+          }
+          
+          setLoading(false)
+        }
       } catch (error) {
         console.error('認証初期化エラー:', error)
-        clearTimeout(forceLoadingEnd)
         if (isMounted) {
           setSession(null)
           setUser(null)
@@ -101,9 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    initializeAuth()
-
-    // 認証状態の変更のみ監視（初期取得はスキップ）
+    // 認証状態変更の監視
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -113,15 +107,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setSession(session)
       setUser(session?.user ?? null)
-      setHasProfile(session?.user ? false : null)
       
-      // 認証状態変更時はローディングを即座に終了
-      setLoading(false)
+      if (session?.user) {
+        // ユーザーが認証された場合、プロフィール確認
+        await checkProfile(session.user.id)
+      } else {
+        setHasProfile(null)
+      }
     })
+
+    // 初期化実行
+    initializeAuth()
 
     return () => {
       isMounted = false
-      clearTimeout(forceLoadingEnd)
       subscription.unsubscribe()
     }
   }, [])
