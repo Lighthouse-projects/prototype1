@@ -37,6 +37,13 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         </TouchableOpacity>
 
         <TouchableOpacity
+          style={styles.button}
+          onPress={() => navigation.navigate('ProfileEdit')}
+        >
+          <Text style={styles.buttonText}>プロフィールを編集</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={[styles.button, styles.secondaryButton]}
           onPress={handleSignOut}
         >

@@ -14,15 +14,16 @@ import {
 import { Picker } from '@react-native-picker/picker'
 import { useAuth } from '../../contexts/AuthContext'
 import { profileService } from '../../services/profileService'
-import { ProfileFormData, Prefecture } from '../../types/profile'
+import { ProfileFormData, Prefecture, Profile } from '../../types/profile'
 
 interface Props {
   navigation: any
 }
 
-export const ProfileCreationScreen: React.FC<Props> = ({ navigation }) => {
-  const { user, refreshProfileStatus } = useAuth()
-  const [loading, setLoading] = useState(false)
+export const ProfileEditScreen: React.FC<Props> = ({ navigation }) => {
+  const { user } = useAuth()
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [prefectures, setPrefectures] = useState<Prefecture[]>([])
   
   const [formData, setFormData] = useState<ProfileFormData>({
@@ -38,18 +39,53 @@ export const ProfileCreationScreen: React.FC<Props> = ({ navigation }) => {
     preferred_prefecture: '',
   })
 
-  // 都道府県データを取得
   useEffect(() => {
-    const loadPrefectures = async () => {
-      try {
-        const data = await profileService.getPrefectures()
-        setPrefectures(data)
-      } catch (error) {
-        console.error('都道府県データ取得エラー:', error)
-      }
-    }
-    loadPrefectures()
+    loadData()
   }, [])
+
+  const loadData = async () => {
+    if (!user?.id) {
+      Alert.alert('エラー', 'ユーザー情報が取得できません')
+      navigation.goBack()
+      return
+    }
+
+    try {
+      setLoading(true)
+      
+      // プロフィールと都道府県データを並行取得
+      const [profileData, prefectureData] = await Promise.all([
+        profileService.getProfile(user.id),
+        profileService.getPrefectures()
+      ])
+
+      setPrefectures(prefectureData)
+
+      if (profileData) {
+        // プロフィールデータをフォーム用に変換
+        setFormData({
+          display_name: profileData.display_name,
+          age: profileData.age.toString(),
+          gender: profileData.gender,
+          prefecture: profileData.prefecture,
+          city: profileData.city || '',
+          occupation: profileData.occupation || '',
+          bio: profileData.bio || '',
+          preferred_min_age: profileData.preferred_min_age?.toString() || '',
+          preferred_max_age: profileData.preferred_max_age?.toString() || '',
+          preferred_prefecture: profileData.preferred_prefecture || '',
+        })
+      } else {
+        Alert.alert('エラー', 'プロフィールが見つかりません')
+        navigation.goBack()
+      }
+    } catch (error) {
+      console.error('データ取得エラー:', error)
+      Alert.alert('エラー', 'データの取得に失敗しました')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const updateFormData = (field: keyof ProfileFormData, value: string) => {
     setFormData(prev => ({
@@ -119,23 +155,29 @@ export const ProfileCreationScreen: React.FC<Props> = ({ navigation }) => {
     if (!validateForm()) return
 
     try {
-      setLoading(true)
-      await profileService.createProfile(formData)
-      
-      // プロフィール状態を更新
-      await refreshProfileStatus()
+      setSaving(true)
+      await profileService.updateProfile(formData)
       
       Alert.alert(
-        'プロフィール作成完了',
-        'プロフィールが正常に作成されました。',
-        [{ text: 'OK', onPress: () => navigation.replace('Home') }]
+        'プロフィール更新完了',
+        'プロフィールが正常に更新されました。',
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
       )
     } catch (error: any) {
-      console.error('プロフィール作成エラー:', error)
-      Alert.alert('エラー', error.message || 'プロフィールの作成に失敗しました。')
+      console.error('プロフィール更新エラー:', error)
+      Alert.alert('エラー', error.message || 'プロフィールの更新に失敗しました。')
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.loadingText}>プロフィールを読み込み中...</Text>
+      </View>
+    )
   }
 
   return (
@@ -144,9 +186,9 @@ export const ProfileCreationScreen: React.FC<Props> = ({ navigation }) => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>プロフィールを作成</Text>
+        <Text style={styles.title}>プロフィールを編集</Text>
         <Text style={styles.subtitle}>
-          あなたの基本情報を入力してください
+          情報を更新してください
         </Text>
 
         {/* 表示名 */}
@@ -298,19 +340,19 @@ export const ProfileCreationScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </View>
 
-        {/* 作成ボタン */}
+        {/* 更新ボタン */}
         <TouchableOpacity
           style={[
-            styles.createButton,
-            { backgroundColor: loading ? '#cccccc' : '#007AFF' }
+            styles.updateButton,
+            { backgroundColor: saving ? '#cccccc' : '#007AFF' }
           ]}
           onPress={handleSubmit}
-          disabled={loading}
+          disabled={saving}
         >
-          {loading ? (
+          {saving ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (
-            <Text style={styles.createButtonText}>プロフィールを作成</Text>
+            <Text style={styles.updateButtonText}>プロフィールを更新</Text>
           )}
         </TouchableOpacity>
 
@@ -328,6 +370,17 @@ const styles = StyleSheet.create({
   content: {
     padding: 24,
     paddingTop: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
   },
   title: {
     fontSize: 28,
@@ -377,11 +430,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#fafafa',
     minHeight: 50,
+    maxHeight: 70,
     justifyContent: 'center',
-    paddingHorizontal: Platform.OS === 'android' ? 12 : 0,
+    
+    overflow: 'hidden',
   },
   picker: {
-    height: Platform.OS === 'ios' ? 50 : 55,
+    height: Platform.OS === 'ios' ? -10 : 55,
     color: '#333',
     ...Platform.select({
       android: {
@@ -392,14 +447,14 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
   },
-  createButton: {
+  updateButton: {
     borderRadius: 8,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 24,
     marginBottom: 16,
   },
-  createButtonText: {
+  updateButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',

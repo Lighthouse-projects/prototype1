@@ -26,11 +26,17 @@ export const AppNavigator: React.FC = () => {
 
   // 認証済みユーザーの処理
   if (user) {
-    // プロフィール未作成の場合
-    if (hasProfile === false) {
-      return <MainNavigator />
+    // プロフィール確認中の場合はローディング表示
+    if (hasProfile === null) {
+      return (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.title}>prototype1</Text>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>プロフィール確認中...</Text>
+        </View>
+      )
     }
-    // プロフィール作成済みの場合も一旦MainNavigatorへ
+    // プロフィールの有無に関わらずMainNavigatorで適切に制御
     return <MainNavigator />
   }
 

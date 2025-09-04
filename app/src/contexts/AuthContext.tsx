@@ -12,6 +12,7 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<void>
   hasProfile: boolean | null
   loading: boolean
+  refreshProfileStatus: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -151,6 +152,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (error) throw error
   }
 
+  const refreshProfileStatus = async () => {
+    if (user?.id) {
+      await checkProfile(user.id)
+    }
+  }
+
   const value = {
     user,
     session,
@@ -160,6 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     resetPassword,
     hasProfile,
     loading,
+    refreshProfileStatus,
   }
 
   return (
