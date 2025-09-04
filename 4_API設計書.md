@@ -724,6 +724,7 @@ curl -X PUT https://api.matchingapp.com/api/notifications/notif-123/read \
 **エラー**: 401 Unauthorized, 404 Not Found
 
 ## ポイント関連（Phase2）
+**注意**: Phase2未実装時は全てのポイント関連APIで`404 Not Found`エラーを返します。
 ### GET /api/points/balance
 **認証**: 必要  
 **説明**: ポイント残高取得
@@ -760,7 +761,11 @@ curl -X POST https://api.matchingapp.com/api/points/purchase \
   -H "Content-Type: application/json" \
   -d '{
     "amount": 100,
-    "receipt_data": "base64_encoded_receipt"
+    "receipt_data": {
+      "receipt": "base64_encoded_receipt",
+      "platform": "ios",
+      "product_id": "points_100"
+    }
   }'
 ```
 
