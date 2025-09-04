@@ -11,6 +11,9 @@ export interface Profile {
   preferred_min_age?: number
   preferred_max_age?: number
   preferred_prefecture?: string
+  main_image_url?: string
+  additional_images?: string[]
+  video_url?: string
   profile_completion_rate: number
   last_active: string
   created_at: string
@@ -28,6 +31,9 @@ export interface ProfileFormData {
   preferred_min_age: string
   preferred_max_age: string
   preferred_prefecture: string
+  main_image_url?: string
+  additional_images?: string[]
+  video_url?: string
 }
 
 export interface Prefecture {

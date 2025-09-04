@@ -10,10 +10,12 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from 'react-native'
 import { Picker } from '@react-native-picker/picker'
 import { useAuth } from '../../contexts/AuthContext'
 import { profileService } from '../../services/profileService'
+import { mediaService, MediaPickerResult } from '../../services/mediaService'
 import { ProfileFormData, Prefecture, Profile } from '../../types/profile'
 
 interface Props {
@@ -25,6 +27,11 @@ export const ProfileEditScreen: React.FC<Props> = ({ navigation }) => {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [prefectures, setPrefectures] = useState<Prefecture[]>([])
+  const [selectedMainImage, setSelectedMainImage] = useState<MediaPickerResult | null>(null)
+  const [selectedAdditionalImages, setSelectedAdditionalImages] = useState<MediaPickerResult[]>([])
+  const [selectedVideo, setSelectedVideo] = useState<MediaPickerResult | null>(null)
+  const [uploadingMedia, setUploadingMedia] = useState(false)
+  const [currentProfile, setCurrentProfile] = useState<Profile | null>(null)
   
   const [formData, setFormData] = useState<ProfileFormData>({
     display_name: '',
@@ -37,6 +44,9 @@ export const ProfileEditScreen: React.FC<Props> = ({ navigation }) => {
     preferred_min_age: '',
     preferred_max_age: '',
     preferred_prefecture: '',
+    main_image_url: '',
+    additional_images: [],
+    video_url: '',
   })
 
   useEffect(() => {
@@ -62,6 +72,7 @@ export const ProfileEditScreen: React.FC<Props> = ({ navigation }) => {
       setPrefectures(prefectureData)
 
       if (profileData) {
+        setCurrentProfile(profileData)
         // プロフィールデータをフォーム用に変換
         setFormData({
           display_name: profileData.display_name,
@@ -74,6 +85,9 @@ export const ProfileEditScreen: React.FC<Props> = ({ navigation }) => {
           preferred_min_age: profileData.preferred_min_age?.toString() || '',
           preferred_max_age: profileData.preferred_max_age?.toString() || '',
           preferred_prefecture: profileData.preferred_prefecture || '',
+          main_image_url: profileData.main_image_url || '',
+          additional_images: profileData.additional_images || [],
+          video_url: profileData.video_url || '',
         })
       } else {
         Alert.alert('エラー', 'プロフィールが見つかりません')
@@ -151,12 +165,91 @@ export const ProfileEditScreen: React.FC<Props> = ({ navigation }) => {
     return true
   }
 
+  const handlePickMainImage = async () => {
+    try {
+      const result = await mediaService.pickImage()
+      if (result) {
+        setSelectedMainImage(result)
+      }
+    } catch (error: any) {
+      Alert.alert('エラー', error.message || '画像の選択に失敗しました。')
+    }
+  }
+
+  const handlePickAdditionalImage = async () => {
+    const currentCount = selectedAdditionalImages.length + (formData.additional_images?.length || 0)
+    if (currentCount >= 5) {
+      Alert.alert('制限', '追加画像は最大5枚まで選択できます。')
+      return
+    }
+
+    try {
+      const result = await mediaService.pickImage()
+      if (result) {
+        setSelectedAdditionalImages(prev => [...prev, result])
+      }
+    } catch (error: any) {
+      Alert.alert('エラー', error.message || '画像の選択に失敗しました。')
+    }
+  }
+
+  const handlePickVideo = async () => {
+    try {
+      const result = await mediaService.pickVideo()
+      if (result) {
+        setSelectedVideo(result)
+      }
+    } catch (error: any) {
+      Alert.alert('エラー', error.message || '動画の選択に失敗しました。')
+    }
+  }
+
+  const removeAdditionalImage = (index: number) => {
+    setSelectedAdditionalImages(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const removeExistingAdditionalImage = (index: number) => {
+    const updatedImages = [...(formData.additional_images || [])]
+    updatedImages.splice(index, 1)
+    updateFormData('additional_images', updatedImages)
+  }
+
   const handleSubmit = async () => {
     if (!validateForm()) return
 
+    if (!user) {
+      Alert.alert('エラー', 'ユーザー情報が取得できません。')
+      return
+    }
+
     try {
       setSaving(true)
-      await profileService.updateProfile(formData)
+      setUploadingMedia(true)
+
+      let updatedFormData = { ...formData }
+
+      // 新しいメイン画像をアップロード
+      if (selectedMainImage) {
+        const mainImageUrl = await mediaService.uploadMainImage(selectedMainImage, user.id)
+        updatedFormData.main_image_url = mainImageUrl
+      }
+
+      // 新しい追加画像をアップロード
+      if (selectedAdditionalImages.length > 0) {
+        const newAdditionalImageUrls = await mediaService.uploadAdditionalImages(selectedAdditionalImages, user.id)
+        const existingImages = updatedFormData.additional_images || []
+        updatedFormData.additional_images = [...existingImages, ...newAdditionalImageUrls]
+      }
+
+      // 新しい動画をアップロード
+      if (selectedVideo) {
+        const videoUrl = await mediaService.uploadVideo(selectedVideo, user.id)
+        updatedFormData.video_url = videoUrl
+      }
+
+      setUploadingMedia(false)
+      
+      await profileService.updateProfile(updatedFormData)
       
       Alert.alert(
         'プロフィール更新完了',
@@ -168,6 +261,7 @@ export const ProfileEditScreen: React.FC<Props> = ({ navigation }) => {
       Alert.alert('エラー', error.message || 'プロフィールの更新に失敗しました。')
     } finally {
       setSaving(false)
+      setUploadingMedia(false)
     }
   }
 
@@ -286,6 +380,84 @@ export const ProfileEditScreen: React.FC<Props> = ({ navigation }) => {
           />
         </View>
 
+        {/* メイン画像 */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>メイン画像</Text>
+          <TouchableOpacity style={styles.imageButton} onPress={handlePickMainImage}>
+            {selectedMainImage ? (
+              <Image source={{ uri: selectedMainImage.uri }} style={styles.selectedImage} />
+            ) : formData.main_image_url ? (
+              <Image source={{ uri: formData.main_image_url }} style={styles.selectedImage} />
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <Text style={styles.imagePlaceholderText}>画像を選択</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <Text style={styles.hintText}>タップして新しい画像に変更</Text>
+        </View>
+
+        {/* 追加画像 */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>追加画像（最大5枚）</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.additionalImagesContainer}>
+              {/* 既存の追加画像 */}
+              {formData.additional_images?.map((imageUrl, index) => (
+                <View key={`existing-${index}`} style={styles.additionalImageItem}>
+                  <Image source={{ uri: imageUrl }} style={styles.additionalImage} />
+                  <TouchableOpacity
+                    style={styles.removeButton}
+                    onPress={() => removeExistingAdditionalImage(index)}
+                  >
+                    <Text style={styles.removeButtonText}>×</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+              {/* 新しく選択した追加画像 */}
+              {selectedAdditionalImages.map((image, index) => (
+                <View key={`new-${index}`} style={styles.additionalImageItem}>
+                  <Image source={{ uri: image.uri }} style={styles.additionalImage} />
+                  <TouchableOpacity
+                    style={styles.removeButton}
+                    onPress={() => removeAdditionalImage(index)}
+                  >
+                    <Text style={styles.removeButtonText}>×</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+              {/* 追加ボタン */}
+              {(selectedAdditionalImages.length + (formData.additional_images?.length || 0)) < 5 && (
+                <TouchableOpacity style={styles.addImageButton} onPress={handlePickAdditionalImage}>
+                  <Text style={styles.addImageButtonText}>+</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </ScrollView>
+        </View>
+
+        {/* 動画 */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>動画（1本まで）</Text>
+          <TouchableOpacity style={styles.videoButton} onPress={handlePickVideo}>
+            {selectedVideo ? (
+              <View style={styles.selectedVideo}>
+                <Text style={styles.selectedVideoText}>新しい動画選択済み</Text>
+                <Text style={styles.selectedVideoName}>{selectedVideo.fileName}</Text>
+              </View>
+            ) : formData.video_url ? (
+              <View style={styles.selectedVideo}>
+                <Text style={styles.selectedVideoText}>動画設定済み</Text>
+                <Text style={styles.selectedVideoName}>タップして変更</Text>
+              </View>
+            ) : (
+              <View style={styles.videoPlaceholder}>
+                <Text style={styles.videoPlaceholderText}>動画を選択</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+
         {/* 希望年齢 */}
         <Text style={styles.sectionTitle}>お相手の希望条件</Text>
         
@@ -344,13 +516,18 @@ export const ProfileEditScreen: React.FC<Props> = ({ navigation }) => {
         <TouchableOpacity
           style={[
             styles.updateButton,
-            { backgroundColor: saving ? '#cccccc' : '#007AFF' }
+            { backgroundColor: (saving || uploadingMedia) ? '#cccccc' : '#007AFF' }
           ]}
           onPress={handleSubmit}
-          disabled={saving}
+          disabled={saving || uploadingMedia}
         >
-          {saving ? (
-            <ActivityIndicator color="#fff" size="small" />
+          {saving || uploadingMedia ? (
+            <View style={styles.loadingContainer2}>
+              <ActivityIndicator color="#fff" size="small" />
+              <Text style={styles.loadingText2}>
+                {uploadingMedia ? 'メディアアップロード中...' : 'プロフィール更新中...'}
+              </Text>
+            </View>
           ) : (
             <Text style={styles.updateButtonText}>プロフィールを更新</Text>
           )}
@@ -464,5 +641,120 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'center',
     marginBottom: 40,
+  },
+  imageButton: {
+    borderWidth: 2,
+    borderColor: '#ddd',
+    borderStyle: 'dashed',
+    borderRadius: 8,
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fafafa',
+  },
+  selectedImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+    resizeMode: 'cover',
+  },
+  imagePlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imagePlaceholderText: {
+    fontSize: 16,
+    color: '#999',
+  },
+  hintText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  additionalImagesContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  additionalImageItem: {
+    position: 'relative',
+    marginRight: 12,
+  },
+  additionalImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    resizeMode: 'cover',
+  },
+  removeButton: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#ff4444',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  removeButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  addImageButton: {
+    width: 80,
+    height: 80,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    borderStyle: 'dashed',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fafafa',
+  },
+  addImageButtonText: {
+    fontSize: 24,
+    color: '#999',
+  },
+  videoButton: {
+    borderWidth: 2,
+    borderColor: '#ddd',
+    borderStyle: 'dashed',
+    borderRadius: 8,
+    height: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fafafa',
+  },
+  selectedVideo: {
+    alignItems: 'center',
+  },
+  selectedVideoText: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '600',
+  },
+  selectedVideoName: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  videoPlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoPlaceholderText: {
+    fontSize: 16,
+    color: '#999',
+  },
+  loadingContainer2: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  loadingText2: {
+    color: '#fff',
+    fontSize: 14,
+    marginLeft: 8,
   },
 })

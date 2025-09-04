@@ -43,6 +43,9 @@ export const profileService = {
       preferred_min_age: profileData.preferred_min_age ? parseInt(profileData.preferred_min_age) : null,
       preferred_max_age: profileData.preferred_max_age ? parseInt(profileData.preferred_max_age) : null,
       preferred_prefecture: profileData.preferred_prefecture || null,
+      main_image_url: profileData.main_image_url || null,
+      additional_images: profileData.additional_images || null,
+      video_url: profileData.video_url || null,
       profile_completion_rate: calculateCompletionRate(profileData),
     }
 
@@ -81,6 +84,9 @@ export const profileService = {
       preferred_min_age: profileData.preferred_min_age ? parseInt(profileData.preferred_min_age) : null,
       preferred_max_age: profileData.preferred_max_age ? parseInt(profileData.preferred_max_age) : null,
       preferred_prefecture: profileData.preferred_prefecture || null,
+      main_image_url: profileData.main_image_url || null,
+      additional_images: profileData.additional_images || null,
+      video_url: profileData.video_url || null,
       profile_completion_rate: calculateCompletionRate(profileData),
       updated_at: new Date().toISOString(),
     }
@@ -154,17 +160,20 @@ export const profileService = {
 function calculateCompletionRate(data: ProfileFormData): number {
   let rate = 0
   
-  // 必須項目（25%ずつ）
-  if (data.display_name) rate += 25
-  if (data.age) rate += 25
-  if (data.gender) rate += 25
-  if (data.prefecture) rate += 25
+  // 必須項目（20%ずつ）
+  if (data.display_name) rate += 20
+  if (data.age) rate += 20
+  if (data.gender) rate += 20
+  if (data.prefecture) rate += 20
+  if (data.main_image_url) rate += 20 // メイン画像を必須項目として追加
   
-  // 任意項目（追加ポイント、簡素版）
+  // 任意項目（追加ポイント）
   if (data.city) rate += 5
   if (data.occupation) rate += 5
   if (data.bio && data.bio.length >= 20) rate += 10
   if (data.preferred_min_age && data.preferred_max_age) rate += 5
+  if (data.additional_images && data.additional_images.length > 0) rate += 5
+  if (data.video_url) rate += 5
   
   return Math.min(rate, 100)
 }

@@ -7,7 +7,10 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Image,
+  Dimensions,
 } from 'react-native'
+import { Video } from 'expo-av'
 import { useAuth } from '../../contexts/AuthContext'
 import { profileService } from '../../services/profileService'
 import { Profile } from '../../types/profile'
@@ -81,6 +84,17 @@ export const ProfileViewScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* メイン画像 */}
+      {profile.main_image_url && (
+        <View style={styles.mainImageContainer}>
+          <Image
+            source={{ uri: profile.main_image_url }}
+            style={styles.mainImage}
+            resizeMode="cover"
+          />
+        </View>
+      )}
+
       {/* ヘッダー情報 */}
       <View style={styles.header}>
         <Text style={styles.displayName}>{profile.display_name}</Text>
@@ -91,6 +105,39 @@ export const ProfileViewScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.location}>{profile.city}</Text>
         )}
       </View>
+
+      {/* 追加画像 */}
+      {profile.additional_images && profile.additional_images.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>その他の写真</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.additionalImagesContainer}>
+              {profile.additional_images.map((imageUrl, index) => (
+                <Image
+                  key={index}
+                  source={{ uri: imageUrl }}
+                  style={styles.additionalImage}
+                  resizeMode="cover"
+                />
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+      )}
+
+      {/* 動画 */}
+      {profile.video_url && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>動画</Text>
+          <Video
+            source={{ uri: profile.video_url }}
+            style={styles.videoPlayer}
+            useNativeControls
+            resizeMode="contain"
+            shouldPlay={false}
+          />
+        </View>
+      )}
 
       {/* プロフィール完成度 */}
       <View style={styles.section}>
@@ -293,5 +340,37 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  mainImageContainer: {
+    marginBottom: 24,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  mainImage: {
+    width: '100%',
+    height: 300,
+  },
+  additionalImagesContainer: {
+    flexDirection: 'row',
+  },
+  additionalImage: {
+    width: 120,
+    height: 120,
+    marginRight: 12,
+    borderRadius: 8,
+  },
+  videoPlayer: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    backgroundColor: '#000',
   },
 })
