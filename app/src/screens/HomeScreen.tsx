@@ -16,6 +16,17 @@ interface Profile {
   occupation?: string
   images: string[]
   bio?: string
+  // 新規追加項目
+  nickname?: string
+  height?: number
+  body_type?: 'slim' | 'normal' | 'chubby' | 'overweight'
+  meeting_purpose?: 'chat' | 'friend' | 'relationship' | 'marriage'
+  hometown_prefecture?: string
+  drinking?: 'never' | 'sometimes' | 'often'
+  smoking?: 'never' | 'sometimes' | 'often' | 'quit_for_partner'
+  free_days?: 'irregular' | 'weekends' | 'weekdays'
+  meeting_frequency?: 'monthly' | 'twice_monthly' | 'weekly' | 'multiple_weekly' | 'frequent'
+  future_dreams?: string
 }
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {

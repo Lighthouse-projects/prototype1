@@ -7,6 +7,14 @@ import {
   Dimensions,
   TouchableOpacity,
 } from 'react-native'
+import {
+  MEETING_PURPOSE_OPTIONS,
+  BODY_TYPE_OPTIONS,
+  DRINKING_OPTIONS,
+  SMOKING_OPTIONS,
+  FREE_DAYS_OPTIONS,
+  MEETING_FREQUENCY_OPTIONS
+} from '../types/profile'
 
 const { width, height } = Dimensions.get('window')
 
@@ -19,6 +27,17 @@ interface ProfileCardProps {
     occupation?: string
     images: string[]
     bio?: string
+    // 新規追加項目
+    nickname?: string
+    height?: number
+    body_type?: string
+    meeting_purpose?: string
+    hometown_prefecture?: string
+    drinking?: string
+    smoking?: string
+    free_days?: string
+    meeting_frequency?: string
+    future_dreams?: string
   }
 }
 
@@ -38,8 +57,16 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ profile }) => {
           
           <View style={styles.details}>
             <Text style={styles.location}>{profile.location}</Text>
+            {profile.height && (
+              <Text style={styles.occupation}>{profile.height}cm</Text>
+            )}
             {profile.occupation && (
               <Text style={styles.occupation}>{profile.occupation}</Text>
+            )}
+            {profile.meeting_purpose && (
+              <Text style={styles.tag}>
+                {MEETING_PURPOSE_OPTIONS.find(opt => opt.value === profile.meeting_purpose)?.label}
+              </Text>
             )}
           </View>
           
@@ -129,6 +156,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#fff',
     opacity: 0.8,
+  },
+  tag: {
+    fontSize: 12,
+    color: '#fff',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    alignSelf: 'flex-start',
+    marginTop: 4,
   },
   bio: {
     fontSize: 14,

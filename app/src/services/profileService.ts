@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase'
-import { Profile, ProfileFormData, Prefecture } from '../types/profile'
+import { Profile, ProfileFormData, Prefecture, ProfileOption } from '../types/profile'
 
 export const profileService = {
   // プロフィール取得
@@ -46,6 +46,23 @@ export const profileService = {
       main_image_url: profileData.main_image_url || null,
       additional_images: profileData.additional_images || null,
       video_url: profileData.video_url || null,
+      
+      // 新規追加項目（Phase 1 - 基本項目）
+      meeting_purpose: profileData.meeting_purpose || null,
+      nickname: profileData.nickname || null,
+      height: profileData.height ? parseInt(profileData.height) : null,
+      body_type: profileData.body_type || null,
+      
+      // 新規追加項目（Phase 2 - 推奨項目）
+      hometown_prefecture: profileData.hometown_prefecture || null,
+      drinking: profileData.drinking || null,
+      smoking: profileData.smoking || null,
+      free_days: profileData.free_days || null,
+      
+      // 新規追加項目（Phase 3 - 詳細項目）
+      meeting_frequency: profileData.meeting_frequency || null,
+      future_dreams: profileData.future_dreams || null,
+      
       profile_completion_rate: calculateCompletionRate(profileData),
     }
 
@@ -87,6 +104,23 @@ export const profileService = {
       main_image_url: profileData.main_image_url || null,
       additional_images: profileData.additional_images || null,
       video_url: profileData.video_url || null,
+      
+      // 新規追加項目（Phase 1 - 基本項目）
+      meeting_purpose: profileData.meeting_purpose || null,
+      nickname: profileData.nickname || null,
+      height: profileData.height ? parseInt(profileData.height) : null,
+      body_type: profileData.body_type || null,
+      
+      // 新規追加項目（Phase 2 - 推奨項目）
+      hometown_prefecture: profileData.hometown_prefecture || null,
+      drinking: profileData.drinking || null,
+      smoking: profileData.smoking || null,
+      free_days: profileData.free_days || null,
+      
+      // 新規追加項目（Phase 3 - 詳細項目）
+      meeting_frequency: profileData.meeting_frequency || null,
+      future_dreams: profileData.future_dreams || null,
+      
       profile_completion_rate: calculateCompletionRate(profileData),
       updated_at: new Date().toISOString(),
     }
@@ -153,28 +187,73 @@ export const profileService = {
       console.error('プロフィール確認で予期しないエラー:', error)
       return false
     }
+  },
+
+  // プロフィールオプション取得
+  async getProfileOptions(category?: string): Promise<ProfileOption[]> {
+    let query = supabase
+      .from('profile_options')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order')
+    
+    if (category) {
+      query = query.eq('category', category)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error('プロフィールオプション取得エラー:', error)
+      return []
+    }
+
+    return data || []
   }
 }
 
-// プロフィール完成度計算
+// プロフィール完成度計算（100%制限版）
 function calculateCompletionRate(data: ProfileFormData): number {
   let rate = 0
   
-  // 必須項目（20%ずつ）
+  // 必須項目（各20点、計80点）
   if (data.display_name) rate += 20
   if (data.age) rate += 20
   if (data.gender) rate += 20
   if (data.prefecture) rate += 20
-  if (data.main_image_url) rate += 20 // メイン画像を必須項目として追加
   
-  // 任意項目（追加ポイント）
-  if (data.city) rate += 5
-  if (data.occupation) rate += 5
-  if (data.bio && data.bio.length >= 20) rate += 10
-  if (data.preferred_min_age && data.preferred_max_age) rate += 5
-  if (data.additional_images && data.additional_images.length > 0) rate += 5
-  if (data.video_url) rate += 5
+  // メイン画像（重要度高、20点）
+  if (data.main_image_url) rate += 20
   
+  // Phase 1 追加項目（各2点）
+  if (data.meeting_purpose) rate += 2
+  if (data.nickname) rate += 2
+  if (data.height) rate += 2
+  if (data.body_type) rate += 2
+  
+  // 既存任意項目（各2点）
+  if (data.city) rate += 2
+  if (data.occupation) rate += 2
+  if (data.bio && data.bio.length >= 20) rate += 4
+  
+  // Phase 2 推奨項目（各2点）
+  if (data.hometown_prefecture) rate += 2
+  if (data.drinking) rate += 2
+  if (data.smoking) rate += 2
+  if (data.free_days) rate += 2
+  
+  // Phase 3 詳細項目（各2点）
+  if (data.meeting_frequency) rate += 2
+  if (data.future_dreams && data.future_dreams.length >= 10) rate += 2
+  
+  // 希望条件（2点）
+  if (data.preferred_min_age && data.preferred_max_age) rate += 2
+  
+  // 追加メディア項目（各2点）
+  if (data.additional_images && data.additional_images.length > 0) rate += 2
+  if (data.video_url) rate += 2
+  
+  // 最大値を100に制限
   return Math.min(rate, 100)
 }
 

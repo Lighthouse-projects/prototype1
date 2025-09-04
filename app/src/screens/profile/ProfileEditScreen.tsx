@@ -16,7 +16,20 @@ import { Picker } from '@react-native-picker/picker'
 import { useAuth } from '../../contexts/AuthContext'
 import { profileService } from '../../services/profileService'
 import { mediaService, MediaPickerResult } from '../../services/mediaService'
-import { ProfileFormData, Prefecture, Profile } from '../../types/profile'
+import { 
+  ProfileFormData, 
+  Prefecture, 
+  Profile,
+  MEETING_PURPOSE_OPTIONS,
+  BODY_TYPE_OPTIONS,
+  DRINKING_OPTIONS,
+  SMOKING_OPTIONS,
+  FREE_DAYS_OPTIONS,
+  MEETING_FREQUENCY_OPTIONS
+} from '../../types/profile'
+import { HeightPicker } from '../../components/HeightPicker'
+import { OptionPicker } from '../../components/OptionPicker'
+import { validateProfile, ValidationError } from '../../services/validationService'
 
 interface Props {
   navigation: any
@@ -47,7 +60,25 @@ export const ProfileEditScreen: React.FC<Props> = ({ navigation }) => {
     main_image_url: '',
     additional_images: [],
     video_url: '',
+    
+    // 新規追加項目（Phase 1 - 基本項目）
+    meeting_purpose: '',
+    nickname: '',
+    height: '',
+    body_type: '',
+    
+    // 新規追加項目（Phase 2 - 推奨項目）
+    hometown_prefecture: '',
+    drinking: '',
+    smoking: '',
+    free_days: '',
+    
+    // 新規追加項目（Phase 3 - 詳細項目）
+    meeting_frequency: '',
+    future_dreams: '',
   })
+  
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([])
 
   useEffect(() => {
     loadData()
@@ -88,6 +119,22 @@ export const ProfileEditScreen: React.FC<Props> = ({ navigation }) => {
           main_image_url: profileData.main_image_url || '',
           additional_images: profileData.additional_images || [],
           video_url: profileData.video_url || '',
+          
+          // 新規追加項目（Phase 1 - 基本項目）
+          meeting_purpose: profileData.meeting_purpose || '',
+          nickname: profileData.nickname || '',
+          height: profileData.height?.toString() || '',
+          body_type: profileData.body_type || '',
+          
+          // 新規追加項目（Phase 2 - 推奨項目）
+          hometown_prefecture: profileData.hometown_prefecture || '',
+          drinking: profileData.drinking || '',
+          smoking: profileData.smoking || '',
+          free_days: profileData.free_days || '',
+          
+          // 新規追加項目（Phase 3 - 詳細項目）
+          meeting_frequency: profileData.meeting_frequency || '',
+          future_dreams: profileData.future_dreams || '',
         })
       } else {
         Alert.alert('エラー', 'プロフィールが見つかりません')
@@ -109,60 +156,28 @@ export const ProfileEditScreen: React.FC<Props> = ({ navigation }) => {
   }
 
   const validateForm = (): boolean => {
-    if (!formData.display_name.trim()) {
-      Alert.alert('エラー', '表示名を入力してください。')
+    const errors = validateProfile(formData)
+    setValidationErrors(errors)
+    
+    if (errors.length > 0) {
+      const firstError = errors[0]
+      Alert.alert('エラー', firstError.message)
       return false
     }
-
-    if (formData.display_name.length > 50) {
-      Alert.alert('エラー', '表示名は50文字以内で入力してください。')
-      return false
-    }
-
-    const age = parseInt(formData.age)
-    if (!age || age < 18 || age > 99) {
-      Alert.alert('エラー', '年齢は18歳以上99歳以下で入力してください。')
-      return false
-    }
-
-    if (!formData.gender) {
-      Alert.alert('エラー', '性別を選択してください。')
-      return false
-    }
-
-    if (!formData.prefecture) {
-      Alert.alert('エラー', '都道府県を選択してください。')
-      return false
-    }
-
-    // 希望年齢の整合性チェック
-    if (formData.preferred_min_age && formData.preferred_max_age) {
-      const minAge = parseInt(formData.preferred_min_age)
-      const maxAge = parseInt(formData.preferred_max_age)
-      if (minAge > maxAge) {
-        Alert.alert('エラー', '希望年齢の最小値が最大値を上回っています。')
-        return false
-      }
-    }
-
-    // 希望年齢の範囲チェック
-    if (formData.preferred_min_age) {
-      const minAge = parseInt(formData.preferred_min_age)
-      if (minAge < 18 || minAge > 99) {
-        Alert.alert('エラー', '希望年齢は18歳以上99歳以下で選択してください。')
-        return false
-      }
-    }
-
-    if (formData.preferred_max_age) {
-      const maxAge = parseInt(formData.preferred_max_age)
-      if (maxAge < 18 || maxAge > 99) {
-        Alert.alert('エラー', '希望年齢は18歳以上99歳以下で選択してください。')
-        return false
-      }
-    }
-
+    
     return true
+  }
+
+  const handleHeightChange = (height: number | undefined) => {
+    setFormData(prev => ({
+      ...prev,
+      height: height ? height.toString() : ''
+    }))
+  }
+
+  const getValidationError = (field: string): string | undefined => {
+    const error = validationErrors.find(e => e.field === field)
+    return error?.message
   }
 
   const handlePickMainImage = async () => {
@@ -379,6 +394,181 @@ export const ProfileEditScreen: React.FC<Props> = ({ navigation }) => {
             textAlignVertical="top"
           />
         </View>
+
+        {/* === 新規追加項目 Phase 1 === */}
+        <Text style={styles.sectionHeader}>詳細プロフィール</Text>
+
+        {/* 出会いの目的 */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>出会いの目的</Text>
+          <OptionPicker
+            options={MEETING_PURPOSE_OPTIONS}
+            value={formData.meeting_purpose}
+            onValueChange={(value) => updateFormData('meeting_purpose', value || '')}
+            placeholder="目的を選択してください"
+            title="出会いの目的を選択"
+            style={styles.picker}
+          />
+          {getValidationError('meeting_purpose') && (
+            <Text style={styles.errorText}>{getValidationError('meeting_purpose')}</Text>
+          )}
+        </View>
+
+        {/* ニックネーム */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>ニックネーム</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.nickname}
+            onChangeText={(value) => updateFormData('nickname', value)}
+            placeholder="呼んでほしい名前"
+            maxLength={30}
+          />
+          {getValidationError('nickname') && (
+            <Text style={styles.errorText}>{getValidationError('nickname')}</Text>
+          )}
+        </View>
+
+        {/* 身長 */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>身長</Text>
+          <HeightPicker
+            value={formData.height ? parseInt(formData.height) : undefined}
+            onValueChange={handleHeightChange}
+            placeholder="身長を選択してください"
+            style={styles.picker}
+          />
+          {getValidationError('height') && (
+            <Text style={styles.errorText}>{getValidationError('height')}</Text>
+          )}
+        </View>
+
+        {/* 体型 */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>体型</Text>
+          <OptionPicker
+            options={BODY_TYPE_OPTIONS}
+            value={formData.body_type}
+            onValueChange={(value) => updateFormData('body_type', value || '')}
+            placeholder="体型を選択してください"
+            title="体型を選択"
+            style={styles.picker}
+          />
+          {getValidationError('body_type') && (
+            <Text style={styles.errorText}>{getValidationError('body_type')}</Text>
+          )}
+        </View>
+
+        {/* === 新規追加項目 Phase 2 === */}
+        <Text style={styles.sectionHeader}>ライフスタイル</Text>
+
+        {/* 出身地 */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>出身地</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={formData.hometown_prefecture}
+              onValueChange={(value) => updateFormData('hometown_prefecture', value)}
+              style={styles.picker}
+            >
+              <Picker.Item label="選択してください" value="" />
+              {prefectures.map(pref => (
+                <Picker.Item key={`hometown_${pref.code}`} label={pref.name} value={pref.name} />
+              ))}
+            </Picker>
+          </View>
+          {getValidationError('hometown_prefecture') && (
+            <Text style={styles.errorText}>{getValidationError('hometown_prefecture')}</Text>
+          )}
+        </View>
+
+        {/* 飲酒 */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>飲酒</Text>
+          <OptionPicker
+            options={DRINKING_OPTIONS}
+            value={formData.drinking}
+            onValueChange={(value) => updateFormData('drinking', value || '')}
+            placeholder="飲酒について選択してください"
+            title="飲酒について選択"
+            style={styles.picker}
+          />
+          {getValidationError('drinking') && (
+            <Text style={styles.errorText}>{getValidationError('drinking')}</Text>
+          )}
+        </View>
+
+        {/* 喫煙 */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>喫煙</Text>
+          <OptionPicker
+            options={SMOKING_OPTIONS}
+            value={formData.smoking}
+            onValueChange={(value) => updateFormData('smoking', value || '')}
+            placeholder="喫煙について選択してください"
+            title="喫煙について選択"
+            style={styles.picker}
+          />
+          {getValidationError('smoking') && (
+            <Text style={styles.errorText}>{getValidationError('smoking')}</Text>
+          )}
+        </View>
+
+        {/* 休日 */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>休日</Text>
+          <OptionPicker
+            options={FREE_DAYS_OPTIONS}
+            value={formData.free_days}
+            onValueChange={(value) => updateFormData('free_days', value || '')}
+            placeholder="休日について選択してください"
+            title="休日について選択"
+            style={styles.picker}
+          />
+          {getValidationError('free_days') && (
+            <Text style={styles.errorText}>{getValidationError('free_days')}</Text>
+          )}
+        </View>
+
+        {/* === 新規追加項目 Phase 3 === */}
+        <Text style={styles.sectionHeader}>将来について</Text>
+
+        {/* 会う頻度 */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>理想的な会う頻度</Text>
+          <OptionPicker
+            options={MEETING_FREQUENCY_OPTIONS}
+            value={formData.meeting_frequency}
+            onValueChange={(value) => updateFormData('meeting_frequency', value || '')}
+            placeholder="会う頻度を選択してください"
+            title="理想的な会う頻度を選択"
+            style={styles.picker}
+          />
+          {getValidationError('meeting_frequency') && (
+            <Text style={styles.errorText}>{getValidationError('meeting_frequency')}</Text>
+          )}
+        </View>
+
+        {/* 将来の夢 */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>将来の夢</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={formData.future_dreams}
+            onChangeText={(value) => updateFormData('future_dreams', value)}
+            placeholder="あなたの将来の夢や目標を教えてください..."
+            multiline
+            numberOfLines={3}
+            textAlignVertical="top"
+            maxLength={500}
+          />
+          {getValidationError('future_dreams') && (
+            <Text style={styles.errorText}>{getValidationError('future_dreams')}</Text>
+          )}
+        </View>
+
+        {/* === 画像・動画セクション === */}
+        <Text style={styles.sectionHeader}>写真・動画</Text>
 
         {/* メイン画像 */}
         <View style={styles.inputContainer}>
@@ -756,5 +946,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     marginLeft: 8,
+  },
+  sectionHeader: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginTop: 32,
+    marginBottom: 16,
+    paddingBottom: 8,
+    borderBottomWidth: 2,
+    borderBottomColor: '#E5E7EB',
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#EF4444',
+    marginTop: 4,
+    fontWeight: '500',
   },
 })

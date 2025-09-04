@@ -13,7 +13,15 @@ import {
 import { Video } from 'expo-av'
 import { useAuth } from '../../contexts/AuthContext'
 import { profileService } from '../../services/profileService'
-import { Profile } from '../../types/profile'
+import { 
+  Profile,
+  MEETING_PURPOSE_OPTIONS,
+  BODY_TYPE_OPTIONS,
+  DRINKING_OPTIONS,
+  SMOKING_OPTIONS,
+  FREE_DAYS_OPTIONS,
+  MEETING_FREQUENCY_OPTIONS
+} from '../../types/profile'
 
 interface Props {
   navigation: any
@@ -63,6 +71,13 @@ export const ProfileViewScreen: React.FC<Props> = ({ navigation }) => {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ja-JP')
+  }
+
+  // 新規追加項目用のヘルパー関数
+  const getOptionLabel = (value: string | undefined, options: readonly { value: string; label: string }[]) => {
+    if (!value) return '未設定'
+    const option = options.find(opt => opt.value === value)
+    return option?.label || '未設定'
   }
 
   if (loading) {
@@ -169,6 +184,97 @@ export const ProfileViewScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
         </View>
       </View>
+
+      {/* === 詳細プロフィール === */}
+      {(profile.meeting_purpose || profile.nickname || profile.height || profile.body_type) && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>詳細プロフィール</Text>
+          
+          {profile.meeting_purpose && (
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>出会いの目的</Text>
+              <Text style={styles.value}>{getOptionLabel(profile.meeting_purpose, MEETING_PURPOSE_OPTIONS)}</Text>
+            </View>
+          )}
+
+          {profile.nickname && (
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>ニックネーム</Text>
+              <Text style={styles.value}>{profile.nickname}</Text>
+            </View>
+          )}
+
+          {profile.height && (
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>身長</Text>
+              <Text style={styles.value}>{profile.height}cm</Text>
+            </View>
+          )}
+
+          {profile.body_type && (
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>体型</Text>
+              <Text style={styles.value}>{getOptionLabel(profile.body_type, BODY_TYPE_OPTIONS)}</Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* === ライフスタイル === */}
+      {(profile.hometown_prefecture || profile.drinking || profile.smoking || profile.free_days) && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>ライフスタイル</Text>
+          
+          {profile.hometown_prefecture && (
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>出身地</Text>
+              <Text style={styles.value}>{profile.hometown_prefecture}</Text>
+            </View>
+          )}
+
+          {profile.drinking && (
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>飲酒</Text>
+              <Text style={styles.value}>{getOptionLabel(profile.drinking, DRINKING_OPTIONS)}</Text>
+            </View>
+          )}
+
+          {profile.smoking && (
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>喫煙</Text>
+              <Text style={styles.value}>{getOptionLabel(profile.smoking, SMOKING_OPTIONS)}</Text>
+            </View>
+          )}
+
+          {profile.free_days && (
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>休日</Text>
+              <Text style={styles.value}>{getOptionLabel(profile.free_days, FREE_DAYS_OPTIONS)}</Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* === 将来について === */}
+      {(profile.meeting_frequency || profile.future_dreams) && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>将来について</Text>
+          
+          {profile.meeting_frequency && (
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>理想的な会う頻度</Text>
+              <Text style={styles.value}>{getOptionLabel(profile.meeting_frequency, MEETING_FREQUENCY_OPTIONS)}</Text>
+            </View>
+          )}
+
+          {profile.future_dreams && (
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>将来の夢</Text>
+              <Text style={styles.value}>{profile.future_dreams}</Text>
+            </View>
+          )}
+        </View>
+      )}
 
       {/* 自己紹介 */}
       {profile.bio && (
