@@ -5,7 +5,17 @@
       "Bash(npm install:*)",
       "Bash(npm start)",
       "Bash(npx expo start:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Read(/C:\\work\\【lighthouse-projects】\\prototype1\\app\\src\\screens/**)",
+      "Read(/C:\\work\\【lighthouse-projects】\\prototype1\\app/**)",
+      "Read(/C:\\work\\【lighthouse-projects】\\prototype1\\app/**)",
+      "Read(/C:\\work\\【lighthouse-projects】\\prototype1/**)",
+      "Read(/C:\\work\\【lighthouse-projects】\\prototype1\\app\\src/**)",
+      "Read(/C:\\work\\【lighthouse-projects】\\prototype1\\app\\src/**)",
+      "Read(/C:\\work\\【lighthouse-projects】\\prototype1\\app/**)",
+      "Read(/C:\\work\\【lighthouse-projects】\\prototype1\\app/**)",
+      "Read(/C:\\work\\【lighthouse-projects】\\prototype1\\app\\src\\screens/**)",
+      "Read(/C:\\work\\【lighthouse-projects】\\prototype1/**)"
     ],
     "deny": [],
     "ask": []

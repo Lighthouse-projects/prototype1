@@ -1,13 +1,26 @@
-import React from 'react'
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
+import React, { useState } from 'react'
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native'
 import { useAuth } from '../contexts/AuthContext'
+import { CardSwiper } from '../components/CardSwiper'
+import { mockProfiles } from '../data/mockProfiles'
 
 interface Props {
   navigation: any
 }
 
+interface Profile {
+  id: string
+  name: string
+  age: number
+  location: string
+  occupation?: string
+  images: string[]
+  bio?: string
+}
+
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { signOut, user } = useAuth()
+  const [profiles] = useState<Profile[]>(mockProfiles)
 
   const handleSignOut = async () => {
     try {
@@ -17,103 +30,92 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }
   }
 
+  const handleSwipeRight = (profile: Profile) => {
+    console.log(`${profile.name}にいいねしました`)
+  }
+
+  const handleSwipeLeft = (profile: Profile) => {
+    console.log(`${profile.name}をパスしました`)
+  }
+
+  const handleSwipeTop = (profile: Profile) => {
+    console.log(`${profile.name}にスーパーいいねしました`)
+  }
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>ホーム画面</Text>
-      <Text style={styles.subtitle}>
-        プロフィール作成が完了しました！
-      </Text>
-      
-      <Text style={styles.userInfo}>
-        ログイン中: {user?.email}
-      </Text>
-
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => navigation.navigate('ProfileView')}
-        >
-          <Text style={styles.buttonText}>プロフィールを見る</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => navigation.navigate('ProfileEdit')}
-        >
-          <Text style={styles.buttonText}>プロフィールを編集</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.button, styles.secondaryButton]}
-          onPress={handleSignOut}
-        >
-          <Text style={[styles.buttonText, styles.secondaryButtonText]}>
-            サインアウト
-          </Text>
-        </TouchableOpacity>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>出会いを探す</Text>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => navigation.navigate('ProfileView')}
+          >
+            <Text style={styles.headerButtonText}>プロフィール</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={handleSignOut}
+          >
+            <Text style={styles.headerButtonText}>ログアウト</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <Text style={styles.note}>
-        ※ この画面は仮実装です。{'\n'}
-        次のPhaseでマッチング機能を実装予定です。
-      </Text>
-    </View>
+      <View style={styles.swiperContainer}>
+        <CardSwiper
+          profiles={profiles}
+          onSwipeRight={handleSwipeRight}
+          onSwipeLeft={handleSwipeLeft}
+          onSwipeTop={handleSwipeTop}
+        />
+      </View>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 15,
     backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 16,
   },
-  subtitle: {
-    fontSize: 18,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 32,
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 12,
   },
-  userInfo: {
+  headerButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#f0f0f0',
+  },
+  headerButtonText: {
     fontSize: 14,
-    color: '#999',
-    marginBottom: 40,
+    color: '#666',
+    fontWeight: '500',
   },
-  buttonContainer: {
-    width: '100%',
-    gap: 16,
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#007AFF',
-  },
-  secondaryButtonText: {
-    color: '#007AFF',
-  },
-  note: {
-    fontSize: 12,
-    color: '#999',
-    textAlign: 'center',
-    marginTop: 40,
-    lineHeight: 18,
+  swiperContainer: {
+    flex: 1,
   },
 })
