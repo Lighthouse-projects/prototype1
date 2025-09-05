@@ -34,7 +34,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // プロフィール存在確認
   const checkProfile = async (userId: string) => {
     try {
-      console.log('プロフィール確認開始:', userId)
       const profileExists = await Promise.race([
         profileService.hasProfile(userId),
         new Promise((_, reject) => 
@@ -42,7 +41,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         )
       ]) as boolean
       
-      console.log('プロフィール確認結果:', profileExists)
       setHasProfile(profileExists)
     } catch (error) {
       console.warn('プロフィール確認エラー:', error)
@@ -56,8 +54,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const initializeAuth = async () => {
       try {
-        console.log('認証状態初期化開始')
-        
         // 現在のセッションを取得
         const { data: { session }, error } = await supabase.auth.getSession()
         
@@ -71,8 +67,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           return
         }
-
-        console.log('初期セッション:', session?.user?.email || '未認証')
         
         if (isMounted) {
           setSession(session)
@@ -102,8 +96,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('認証状態変更:', event, session?.user?.email || '未認証')
-      
       if (!isMounted) return
 
       setSession(session)

@@ -7,19 +7,13 @@ import { View, Text, ActivityIndicator, StyleSheet } from 'react-native'
 export const AppNavigator: React.FC = () => {
   const { user, hasProfile, loading } = useAuth()
 
-  console.log('AppNavigatorの中　AppNavigator状態:', { 
-    user: user?.email || '未認証', 
-    hasProfile, 
-    loading 
-  })
-
   // 短時間ローディング表示（最大1秒）
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.title}>prototype1</Text>
         <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>@AppNavigatorの短時間ローディング表示（最大1秒）　起動中...</Text>
+        <Text style={styles.loadingText}>起動中...</Text>
       </View>
     )
   }

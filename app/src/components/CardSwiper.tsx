@@ -10,24 +10,29 @@ import {
   PanResponder,
 } from 'react-native'
 import { ProfileCard } from './ProfileCard'
+import { MatchModal } from './MatchModal'
+import { MatchingService, ProfileWithLike } from '../services/matchingService'
+import { supabase } from '../lib/supabase'
 
 const { width, height } = Dimensions.get('window')
 
 interface Profile {
   id: string
-  name: string
+  display_name: string
   age: number
-  location: string
+  prefecture: string
   occupation?: string
-  images: string[]
+  main_image_url?: string
+  additional_images?: string[]
   bio?: string
 }
 
 interface CardSwiperProps {
-  profiles: Profile[]
-  onSwipeLeft?: (profile: Profile) => void
-  onSwipeRight?: (profile: Profile) => void
-  onSwipeTop?: (profile: Profile) => void
+  profiles: ProfileWithLike[]
+  onSwipeLeft?: (profile: ProfileWithLike) => void
+  onSwipeRight?: (profile: ProfileWithLike) => void
+  onSwipeTop?: (profile: ProfileWithLike) => void
+  onMatchFound?: (profile: ProfileWithLike) => void
 }
 
 export const CardSwiper: React.FC<CardSwiperProps> = ({
@@ -35,9 +40,12 @@ export const CardSwiper: React.FC<CardSwiperProps> = ({
   onSwipeLeft,
   onSwipeRight,
   onSwipeTop,
+  onMatchFound,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [pan] = useState(new Animated.ValueXY())
+  const [matchedProfile, setMatchedProfile] = useState<ProfileWithLike | null>(null)
+  const [showMatchModal, setShowMatchModal] = useState(false)
   
   const panResponder = PanResponder.create({
     onMoveShouldSetPanResponder: () => true,
@@ -75,7 +83,8 @@ export const CardSwiper: React.FC<CardSwiperProps> = ({
             
             // コールバック実行
             if (direction === 'right') {
-              onSwipeRight?.(profile)
+              // いいね処理
+              handleLikeAction(profile)
             } else {
               onSwipeLeft?.(profile)
             }
@@ -91,31 +100,65 @@ export const CardSwiper: React.FC<CardSwiperProps> = ({
     },
   })
 
+  // いいねアクション処理（スワイプとボタン共通）
+  const handleLikeAction = async (profile: ProfileWithLike) => {
+    try {
+      await MatchingService.sendLike(profile.id, false)
+      
+      // マッチング確認（Supabaseトリガーで自動作成されるが、UIのため即座にチェック）
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        // 少し待ってからマッチ確認（トリガー処理完了を待つ）
+        setTimeout(async () => {
+          const matchData = await MatchingService.checkIfMatched(user.id, profile.id)
+          if (matchData) {
+            setMatchedProfile(profile)
+            setShowMatchModal(true)
+          }
+        }, 500)
+      }
+      
+      onSwipeRight?.(profile)
+    } catch (error: any) {
+      Alert.alert('エラー', error.message)
+    }
+  }
+
   // アクションボタンの処理
   const handlePassPress = () => {
     const profile = profiles?.[currentIndex]
     if (profile) {
-      console.log('パス:', profile.name)
       onSwipeLeft?.(profile)
       setCurrentIndex(prev => prev + 1)
     }
   }
 
-  const handleLikePress = () => {
+  const handleLikePress = async () => {
     const profile = profiles?.[currentIndex]
     if (profile) {
-      console.log('いいね:', profile.name)
-      onSwipeRight?.(profile)
+      await handleLikeAction(profile)
       setCurrentIndex(prev => prev + 1)
     }
   }
 
-  const handleSuperLikePress = () => {
+  const handleSuperLikePress = async () => {
     const profile = profiles?.[currentIndex]
     if (profile) {
-      console.log('スーパーいいね:', profile.name)
-      onSwipeTop?.(profile)
-      setCurrentIndex(prev => prev + 1)
+      try {
+        await MatchingService.sendLike(profile.id, true)
+        
+        // スーパーいいねは即座にマッチ成立
+        Alert.alert(
+          '⭐ スーパーいいね送信！',
+          `${profile.display_name}さんにスーパーいいねを送信しました！`,
+          [{ text: 'OK' }]
+        )
+        
+        onSwipeTop?.(profile)
+        setCurrentIndex(prev => prev + 1)
+      } catch (error: any) {
+        Alert.alert('エラー', error.message)
+      }
     }
   }
 
@@ -154,6 +197,24 @@ export const CardSwiper: React.FC<CardSwiperProps> = ({
     outputRange: [0.5, 1, 0.5],
     extrapolate: 'clamp',
   })
+
+  // マッチモーダルのハンドラー
+  const handleSendMessage = () => {
+    setShowMatchModal(false)
+    if (matchedProfile) {
+      onMatchFound?.(matchedProfile)
+    }
+  }
+
+  const handleKeepSwiping = () => {
+    setShowMatchModal(false)
+    setMatchedProfile(null)
+  }
+
+  const handleCloseModal = () => {
+    setShowMatchModal(false)
+    setMatchedProfile(null)
+  }
 
   return (
     <View style={styles.container}>
@@ -223,6 +284,15 @@ export const CardSwiper: React.FC<CardSwiperProps> = ({
           <Text style={styles.likeButtonText}>♥</Text>
         </TouchableOpacity>
       </View>
+
+      {/* マッチモーダル */}
+      <MatchModal
+        visible={showMatchModal}
+        profile={matchedProfile}
+        onClose={handleCloseModal}
+        onSendMessage={handleSendMessage}
+        onKeepSwiping={handleKeepSwiping}
+      />
     </View>
   )
 }

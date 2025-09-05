@@ -1,5 +1,5 @@
 import * as ImagePicker from 'expo-image-picker'
-import { Platform } from 'react-native'
+import { Platform, Linking, Alert } from 'react-native'
 import { supabase } from '../lib/supabase'
 
 export interface MediaPickerResult {
@@ -9,6 +9,30 @@ export interface MediaPickerResult {
 }
 
 export const mediaService = {
+  // スマホの設定画面を開く
+  openAppSettings(): void {
+    if (Platform.OS === 'ios') {
+      Linking.openURL('app-settings:')
+    } else {
+      Linking.openSettings()
+    }
+  },
+
+  // 権限エラー時のアラートと設定画面遷移
+  showPermissionAlert(): void {
+    Alert.alert(
+      '権限が必要です',
+      'この機能を使用するには、写真へのアクセス権限が必要です。設定画面でアプリの権限を有効にしてください。',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        { 
+          text: '設定を開く', 
+          onPress: () => this.openAppSettings() 
+        }
+      ]
+    )
+  },
+
   // カメラ・ギャラリー権限の確認と要求
   async requestPermissions(): Promise<boolean> {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
@@ -20,6 +44,7 @@ export const mediaService = {
     try {
       const hasPermission = await this.requestPermissions()
       if (!hasPermission) {
+        this.showPermissionAlert()
         throw new Error('メディアライブラリへのアクセス権限が必要です')
       }
 
@@ -34,7 +59,6 @@ export const mediaService = {
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0]
-        console.log('画像選択完了:', asset)
         
         return {
           uri: asset.uri,
@@ -55,6 +79,7 @@ export const mediaService = {
     try {
       const hasPermission = await this.requestPermissions()
       if (!hasPermission) {
+        this.showPermissionAlert()
         throw new Error('メディアライブラリへのアクセス権限が必要です')
       }
 
@@ -69,7 +94,6 @@ export const mediaService = {
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0]
-        console.log('動画選択完了:', asset)
         
         return {
           uri: asset.uri,
@@ -92,7 +116,6 @@ export const mediaService = {
     folder: 'images' | 'videos'
   ): Promise<string | null> {
     try {
-      console.log('ファイルアップロード開始:', { uri: file.uri, type: file.type, fileName: file.fileName })
       
       const fileExt = file.fileName.split('.').pop()?.toLowerCase() || (file.type === 'image' ? 'jpg' : 'mp4')
       // より一意性の高いファイル名を生成
@@ -116,7 +139,6 @@ export const mediaService = {
         throw new Error('認証セッションがありません')
       }
       
-      console.log('Supabase Storage REST API呼び出し開始')
       
       const response = await fetch(
         `${supabase.supabaseUrl}/storage/v1/object/profile-media/${fileName}`,
@@ -131,13 +153,11 @@ export const mediaService = {
         }
       )
       
-      console.log('API レスポンス:', { status: response.status, ok: response.ok })
       
       if (!response.ok) {
         // 重複エラーの場合は再試行
         if (response.status === 400 || response.status === 409) {
           const errorText = await response.text()
-          console.log('重複エラー、新しいファイル名で再試行:', errorText)
           
           // より確実な一意性を持つファイル名で再試行
           const newRandom = Math.random().toString(36).substring(2, 15)
@@ -162,7 +182,6 @@ export const mediaService = {
           }
           
           const retryResult = await retryResponse.json()
-          console.log('再試行アップロード成功:', retryResult)
           
           // 新しいファイル名でパブリックURLを取得
           const { data: urlData } = supabase.storage
@@ -178,7 +197,6 @@ export const mediaService = {
       }
       
       const result = await response.json()
-      console.log('アップロード成功:', result)
       
       // パブリックURLを取得
       const { data: urlData } = supabase.storage

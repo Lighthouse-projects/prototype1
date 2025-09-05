@@ -5,20 +5,9 @@ import Constants from 'expo-constants'
 const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
 
-console.log('=== Supabase設定詳細 ===')
-console.log('Constants.expoConfig:', Constants.expoConfig?.extra)
-console.log('process.env SUPABASE_URL:', process.env.EXPO_PUBLIC_SUPABASE_URL)
-console.log('process.env SUPABASE_KEY:', process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ? 'FOUND' : 'MISSING')
-console.log('最終URL:', supabaseUrl)
-console.log('最終KEY:', supabaseAnonKey ? 'FOUND' : 'MISSING')
-console.log('========================')
-
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('❌ Supabase設定が不正です')
-  console.error('URL:', supabaseUrl || 'MISSING')
-  console.error('KEY:', supabaseAnonKey || 'MISSING')
-} else {
-  console.log('✅ Supabase設定OK')
+  throw new Error('Supabase設定が見つかりません。環境変数を確認してください。')
 }
 
 export const supabase = createClient(

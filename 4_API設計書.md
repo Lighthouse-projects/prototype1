@@ -336,9 +336,89 @@ curl -X DELETE https://api.matchingapp.com/api/profiles/images/image-123 \
 **エラー**: 401 Unauthorized, 404 Not Found
 
 ## 発見・検索関連
-### GET /api/discover
+### POST /functions/v1/get-recommended-profiles (Supabase Edge Function)
+**認証**: 必要 (Bearer Token)  
+**説明**: セキュアな推奨プロフィール取得  
+**実装形態**: Supabase Edge Function  
+
+**セキュリティ機能**:
+- Service Role Keyによるサーバーサイドデータアクセス
+- RLSポリシーを迂回した安全なデータ取得
+- いいね済みユーザーの自動除外
+- 年齢・プロフィール完成度による自動フィルタリング
+
+リクエスト例:
+```bash
+curl -X POST https://gcdvaqpgwflnkrdcjkkg.supabase.co/functions/v1/get-recommended-profiles \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "limit": 10
+  }'
+```
+
+リクエストボディ:
+```json
+{
+  "limit": 10
+}
+```
+
+**パラメータ**:
+- `limit` (number, optional): 取得するプロフィール数（デフォルト: 10）
+
+レスポンス例（成功）:
+```json
+{
+  "profiles": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "display_name": "山田花子",
+      "age": 26,
+      "prefecture": "東京都",
+      "occupation": "デザイナー",
+      "main_image_url": "https://cdn.example.com/images/user2_1.jpg",
+      "additional_images": [
+        "https://cdn.example.com/images/user2_2.jpg"
+      ],
+      "bio": "よろしくお願いします",
+      "liked_by_current_user": false
+    }
+  ]
+}
+```
+
+**フィルタリングロジック**:
+1. 現在のユーザー以外
+2. プロフィール必須項目が完成済み（display_name, age, gender）
+3. 現在のユーザーの希望年齢範囲内
+4. いいね済みユーザーを除外
+
+**エラーレスポンス**:
+```json
+{
+  "error": "認証が必要です"
+}
+```
+
+```json
+{
+  "error": "プロフィールが見つかりません"
+}
+```
+
+**レスポンス**: 200 OK  
+**エラー**: 401 Unauthorized, 404 Not Found, 500 Internal Server Error
+
+**技術仕様**:
+- **実行環境**: Deno Runtime
+- **アクセス制御**: JWT認証 + Service Role Key
+- **パフォーマンス**: 平均応答時間 < 1秒
+- **制限**: レート制限（ユーザーあたり60リクエスト/分）
+
+### GET /api/discover (従来のREST API - Phase2実装予定)
 **認証**: 必要  
-**説明**: マッチング対象ユーザー検索
+**説明**: マッチング対象ユーザー検索（地理的検索機能付き）
 
 リクエスト例:
 ```bash

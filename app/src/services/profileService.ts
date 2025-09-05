@@ -20,7 +20,6 @@ export const profileService = {
 
   // プロフィール作成
   async createProfile(profileData: ProfileFormData): Promise<Profile | null> {
-    console.log('プロフィール作成開始:', profileData)
     
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
@@ -28,7 +27,6 @@ export const profileService = {
       throw new Error('認証されていません')
     }
 
-    console.log('認証ユーザー:', user.id, user.email)
 
     // 文字列を数値に変換
     const processedData = {
@@ -66,7 +64,6 @@ export const profileService = {
       profile_completion_rate: calculateCompletionRate(profileData),
     }
 
-    console.log('処理されたデータ:', processedData)
 
     const { data, error } = await supabase
       .from('profiles')
@@ -79,7 +76,6 @@ export const profileService = {
       throw error
     }
 
-    console.log('プロフィール作成成功:', data)
     return data
   },
 

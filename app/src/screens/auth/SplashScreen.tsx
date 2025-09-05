@@ -11,12 +11,10 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
   const [transitionAttempted, setTransitionAttempted] = useState(false)
 
   useEffect(() => {
-    console.log('SplashScreen: loading =', loading, 'attempted =', transitionAttempted)
 
     // 即座に遷移を試行
     const immediateTransition = setTimeout(() => {
       if (!transitionAttempted) {
-        console.log('SplashScreen: 即座遷移実行')
         setTransitionAttempted(true)
         navigation.replace('Welcome')
       }
@@ -25,7 +23,6 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
     // 1秒後にも遷移を試行
     const secondTransition = setTimeout(() => {
       if (!transitionAttempted) {
-        console.log('SplashScreen: 1秒後遷移実行')
         setTransitionAttempted(true)
         navigation.replace('Welcome')
       }
@@ -33,14 +30,12 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
 
     // 2秒後に強制遷移
     const forceTransition = setTimeout(() => {
-      console.log('SplashScreen: 2秒後強制遷移実行')
       setTransitionAttempted(true)
       navigation.replace('Welcome')
     }, 2000)
 
     // 通常の遷移（ローディング完了時）
     if (!loading && !transitionAttempted) {
-      console.log('SplashScreen: 通常遷移実行')
       setTransitionAttempted(true)
       clearTimeout(immediateTransition)
       clearTimeout(secondTransition)

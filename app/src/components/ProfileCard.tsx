@@ -15,34 +15,17 @@ import {
   FREE_DAYS_OPTIONS,
   MEETING_FREQUENCY_OPTIONS
 } from '../types/profile'
+import { ProfileWithLike } from '../services/matchingService'
 
 const { width, height } = Dimensions.get('window')
 
 interface ProfileCardProps {
-  profile: {
-    id: string
-    name: string
-    age: number
-    location: string
-    occupation?: string
-    images: string[]
-    bio?: string
-    // 新規追加項目
-    nickname?: string
-    height?: number
-    body_type?: string
-    meeting_purpose?: string
-    hometown_prefecture?: string
-    drinking?: string
-    smoking?: string
-    free_days?: string
-    meeting_frequency?: string
-    future_dreams?: string
-  }
+  profile: ProfileWithLike
 }
 
 export const ProfileCard: React.FC<ProfileCardProps> = ({ profile }) => {
-  const mainImage = profile.images?.[0] || 'https://via.placeholder.com/300x400'
+  const mainImage = profile.main_image_url || 'https://via.placeholder.com/300x400'
+  const additionalImages = profile.additional_images || []
 
   return (
     <View style={styles.card}>

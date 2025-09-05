@@ -1,37 +1,35 @@
-import React, { useState } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native'
+import React, { useState, useEffect } from 'react'
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Alert, ActivityIndicator } from 'react-native'
 import { useAuth } from '../contexts/AuthContext'
 import { CardSwiper } from '../components/CardSwiper'
-import { mockProfiles } from '../data/mockProfiles'
+import { MatchingService, ProfileWithLike } from '../services/matchingService'
+import { supabase } from '../lib/supabase'
 
 interface Props {
   navigation: any
 }
 
-interface Profile {
-  id: string
-  name: string
-  age: number
-  location: string
-  occupation?: string
-  images: string[]
-  bio?: string
-  // 新規追加項目
-  nickname?: string
-  height?: number
-  body_type?: 'slim' | 'normal' | 'chubby' | 'overweight'
-  meeting_purpose?: 'chat' | 'friend' | 'relationship' | 'marriage'
-  hometown_prefecture?: string
-  drinking?: 'never' | 'sometimes' | 'often'
-  smoking?: 'never' | 'sometimes' | 'often' | 'quit_for_partner'
-  free_days?: 'irregular' | 'weekends' | 'weekdays'
-  meeting_frequency?: 'monthly' | 'twice_monthly' | 'weekly' | 'multiple_weekly' | 'frequent'
-  future_dreams?: string
-}
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { signOut, user } = useAuth()
-  const [profiles] = useState<Profile[]>(mockProfiles)
+  const [profiles, setProfiles] = useState<ProfileWithLike[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadRecommendedProfiles()
+  }, [])
+
+  const loadRecommendedProfiles = async () => {
+    try {
+      setLoading(true)
+      const recommendedProfiles = await MatchingService.getRecommendedProfiles(10)
+      setProfiles(recommendedProfiles)
+    } catch (error: any) {
+      Alert.alert('エラー', error.message || 'プロフィールの読み込みに失敗しました')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSignOut = async () => {
     try {
@@ -41,16 +39,21 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }
   }
 
-  const handleSwipeRight = (profile: Profile) => {
-    console.log(`${profile.name}にいいねしました`)
+  const handleSwipeRight = (profile: ProfileWithLike) => {
+    // いいねの処理は CardSwiper 内部で実行
   }
 
-  const handleSwipeLeft = (profile: Profile) => {
-    console.log(`${profile.name}をパスしました`)
+  const handleSwipeLeft = (profile: ProfileWithLike) => {
+    // パスの処理
   }
 
-  const handleSwipeTop = (profile: Profile) => {
-    console.log(`${profile.name}にスーパーいいねしました`)
+  const handleSwipeTop = (profile: ProfileWithLike) => {
+    // スーパーいいねの処理は CardSwiper 内部で実行
+  }
+
+  const handleMatchFound = (profile: ProfileWithLike) => {
+    // マッチ一覧画面への遷移
+    navigation.navigate('Matches')
   }
 
   return (
@@ -60,12 +63,20 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       <View style={styles.swiperContainer}>
-        <CardSwiper
-          profiles={profiles}
-          onSwipeRight={handleSwipeRight}
-          onSwipeLeft={handleSwipeLeft}
-          onSwipeTop={handleSwipeTop}
-        />
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#4ECDC4" />
+            <Text style={styles.loadingText}>プロフィールを読み込み中...</Text>
+          </View>
+        ) : (
+          <CardSwiper
+            profiles={profiles}
+            onSwipeRight={handleSwipeRight}
+            onSwipeLeft={handleSwipeLeft}
+            onSwipeTop={handleSwipeTop}
+            onMatchFound={handleMatchFound}
+          />
+        )}
       </View>
     </SafeAreaView>
   )
@@ -97,5 +108,15 @@ const styles = StyleSheet.create({
   },
   swiperContainer: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
   },
 })

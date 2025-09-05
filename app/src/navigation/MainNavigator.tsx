@@ -9,6 +9,7 @@ import { HomeScreen } from '../screens/HomeScreen'
 import { BoshuScreen } from '../screens/BoshuScreen'
 import { PartnersScreen } from '../screens/PartnersScreen'
 import { ChatListScreen } from '../screens/ChatListScreen'
+import { MatchListScreen } from '../screens/MatchListScreen'
 import { MyPageScreen } from '../screens/MyPageScreen'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -22,7 +23,7 @@ export type MainStackParamList = {
 export type MainTabParamList = {
   Home: undefined
   Boshu: undefined
-  Partners: undefined
+  Matches: undefined
   ChatList: undefined
   MyPage: undefined
 }
@@ -80,10 +81,10 @@ const TabNavigator: React.FC = () => {
         }}
       />
       <Tab.Screen 
-        name="Partners" 
-        component={PartnersScreen}
+        name="Matches" 
+        component={MatchListScreen}
         options={{
-          tabBarLabel: 'お相手から',
+          tabBarLabel: 'マッチ',
           tabBarIcon: ({ focused, color }) => (
             <Ionicons 
               name={focused ? 'heart' : 'heart-outline'} 
