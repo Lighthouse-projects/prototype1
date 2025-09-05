@@ -799,7 +799,6 @@ const styles = StyleSheet.create({
     minHeight: 50,
     maxHeight: 70,
     justifyContent: 'center',
-    
     overflow: 'hidden',
   },
   picker: {

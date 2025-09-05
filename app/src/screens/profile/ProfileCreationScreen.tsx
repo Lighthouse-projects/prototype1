@@ -207,7 +207,7 @@ export const ProfileCreationScreen: React.FC<Props> = ({ navigation }) => {
       Alert.alert(
         'プロフィール作成完了',
         'プロフィールが正常に作成されました。',
-        [{ text: 'OK', onPress: () => navigation.replace('Home') }]
+        [{ text: 'OK', onPress: () => navigation.replace('TabNavigator') }]
       )
     } catch (error: any) {
       console.error('プロフィール作成エラー:', error)
@@ -693,11 +693,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#fafafa',
     minHeight: 50,
+    maxHeight: 70,
     justifyContent: 'center',
-    paddingHorizontal: Platform.OS === 'android' ? 12 : 0,
+    overflow: 'hidden',
   },
   picker: {
-    height: Platform.OS === 'ios' ? 50 : 55,
+    height: Platform.OS === 'ios' ? -10 : 55,
     color: '#333',
     ...Platform.select({
       android: {
