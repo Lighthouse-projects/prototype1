@@ -62,7 +62,15 @@
       "Read(/C:\\work\\【lighthouse-projects】\\prototype1\\app\\src\\screens/**)",
       "Read(/C:\\work\\【lighthouse-projects】\\prototype1\\app\\src\\components/**)",
       "Read(/C:\\work\\【lighthouse-projects】\\prototype1\\app\\src\\data/**)",
-      "Read(/C:\\work\\【lighthouse-projects】\\prototype1/**)"
+      "Read(/C:\\work\\【lighthouse-projects】\\prototype1/**)",
+      "Bash(git commit:*)",
+      "Read(/C:\\work\\【lighthouse-projects】\\prototype1/**)",
+      "Read(/C:\\work\\【lighthouse-projects】\\prototype1/**)",
+      "Read(/C:\\work\\【lighthouse-projects】\\prototype1\\app\\src\\screens/**)",
+      "Read(/C:\\work\\【lighthouse-projects】\\prototype1\\app/**)",
+      "Read(/C:\\work\\【lighthouse-projects】\\prototype1\\app/**)",
+      "Read(/C:\\work\\【lighthouse-projects】\\prototype1\\app/**)",
+      "Read(/C:\\work\\【lighthouse-projects】\\prototype1\\app/**)"
     ],
     "deny": [],
     "ask": []

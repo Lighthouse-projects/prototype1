@@ -57,20 +57,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>出会いを探す</Text>
-        <View style={styles.headerButtons}>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => navigation.navigate('ProfileView')}
-          >
-            <Text style={styles.headerButtonText}>プロフィール</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={handleSignOut}
-          >
-            <Text style={styles.headerButtonText}>ログアウト</Text>
-          </TouchableOpacity>
-        </View>
       </View>
 
       <View style={styles.swiperContainer}>
@@ -91,9 +77,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 15,
     backgroundColor: '#fff',
@@ -110,21 +93,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  headerButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#f0f0f0',
-  },
-  headerButtonText: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
+    textAlign: 'center',
   },
   swiperContainer: {
     flex: 1,
