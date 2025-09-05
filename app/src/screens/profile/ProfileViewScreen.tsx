@@ -10,7 +10,7 @@ import {
   Image,
   Dimensions,
 } from 'react-native'
-import { Video } from 'expo-av'
+import { VideoView, useVideoPlayer } from 'expo-video'
 import { useAuth } from '../../contexts/AuthContext'
 import { profileService } from '../../services/profileService'
 import { 
@@ -25,6 +25,25 @@ import {
 
 interface Props {
   navigation: any
+}
+
+const VideoPlayer: React.FC<{ videoUrl: string }> = ({ videoUrl }) => {
+  const player = useVideoPlayer(videoUrl, player => {
+    player.loop = true
+  })
+
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>動画</Text>
+      <VideoView
+        player={player}
+        style={styles.videoPlayer}
+        allowsFullscreen
+        nativeControls
+        contentFit="contain"
+      />
+    </View>
+  )
 }
 
 export const ProfileViewScreen: React.FC<Props> = ({ navigation }) => {
@@ -142,16 +161,7 @@ export const ProfileViewScreen: React.FC<Props> = ({ navigation }) => {
 
       {/* 動画 */}
       {profile.video_url && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>動画</Text>
-          <Video
-            source={{ uri: profile.video_url }}
-            style={styles.videoPlayer}
-            useNativeControls
-            resizeMode="contain"
-            shouldPlay={false}
-          />
-        </View>
+        <VideoPlayer videoUrl={profile.video_url} />
       )}
 
       {/* プロフィール完成度 */}

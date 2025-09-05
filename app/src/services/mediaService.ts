@@ -49,7 +49,7 @@ export const mediaService = {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'Images',
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
@@ -84,7 +84,7 @@ export const mediaService = {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        mediaTypes: 'Videos',
         allowsEditing: true,
         quality: 0.8,
         videoMaxDuration: 30,
