@@ -89,7 +89,10 @@
       "mcp__supabase__list_projects",
       "mcp__supabase__execute_sql",
       "mcp__supabase__deploy_edge_function",
-      "mcp__supabase__get_logs"
+      "mcp__supabase__get_logs",
+      "Bash(npx expo install:*)",
+      "Bash(npx expo:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": [],
     "ask": []

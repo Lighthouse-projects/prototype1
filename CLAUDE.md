@@ -136,11 +136,26 @@ prototype1/
 - ローディング状態の適切な表示
 - Picker コンポーネントの位置調整とスタイリング
 
+### 8. マッチング機能 ✅ 新規実装完了
+- **マッチリスト表示**: EdgeFunction経由でマッチした相手の一覧表示
+- **相手プロフィール閲覧**: マッチした相手の詳細プロフィール表示
+- **セキュアアクセス**: EdgeFunction + Service Role Keyによる安全なデータ取得
+- **プライバシー保護**: マッチ関係確認と希望条件の非表示
+- **タブナビゲーション統合**: 「マッチ」タブでの一覧・詳細表示
+- **画面遷移**: マッチリスト → 相手プロフィール → チャット準備（Phase2）
+
+### 9. Supabase EdgeFunctions ✅ 新規実装完了
+- **get-recommended-profiles**: おすすめプロフィール取得（既存）
+- **get-matches-with-profiles**: マッチリスト + プロフィール一括取得（新規）
+- **get-partner-profile**: 相手詳細プロフィール安全取得（新規）
+- **セキュリティ**: JWT認証 + マッチ関係確認 + RLSバイパス
+- **パフォーマンス**: 複数クエリの統合と最適化
+
 ## Phase2対応予定機能
 
 - **チャット機能**: リアルタイムメッセージ交換
-- **マッチング機能**: ユーザー同士のマッチングアルゴリズム
 - **ビデオチャット機能**: WebRTCとSupabase Realtimeを使用した1対1ビデオ通話
+- **高度なマッチングアルゴリズム**: 相性スコア計算と推奨システム
 
 ## 現在の開発状況
 
@@ -149,10 +164,10 @@ prototype1/
 - **プロフィール項目拡張**: ✅ 完了（10項目追加、バリデーション、UI実装済み）
 - **画像・動画機能**: ✅ 完了（メディアアップロード・表示機能実装済み）
 - **カードスワイプ機能**: ✅ 完了（スワイプジェスチャー、アニメーション実装済み）
+- **マッチング機能**: ✅ 完了（EdgeFunction連携、セキュアアクセス実装済み）
 - **ナビゲーション**: ✅ 完了
 - **基本UI/UX**: ✅ 完了
-- **チャット機能**: ❌ 未着手
-- **マッチング機能**: ❌ 未着手
+- **チャット機能**: ❌ 未着手（Phase2対応予定）
 
 ## 重要な注意事項
 
@@ -175,23 +190,35 @@ npx expo start
 - `app/src/lib/supabase.ts`: Supabaseクライアント設定
 - `app/src/contexts/AuthContext.tsx`: 認証状態管理
 - `app/src/services/profileService.ts`: プロフィールAPI操作（拡張完了）
+- `app/src/services/matchingService.ts`: マッチング・EdgeFunction連携（新規）
 - `app/src/services/validationService.ts`: プロフィールバリデーション（新規）
 - `app/src/services/mediaService.ts`: 画像・動画アップロードAPI操作
 - `app/src/components/HeightPicker.tsx`: 身長選択UIコンポーネント（新規）
 - `app/src/components/OptionPicker.tsx`: 汎用選択UIコンポーネント（新規）
+- `app/src/screens/MatchListScreen.tsx`: マッチ一覧画面（新規）
+- `app/src/screens/PartnerProfileScreen.tsx`: 相手プロフィール画面（新規）
 - `app/app.config.js`: Expo設定（メディア権限設定含む）
 
 ### Supabaseバックエンド設定
-- **データベース**: profilesテーブル（画像・動画URLフィールド + 拡張プロフィール項目10項目追加済み）
+- **データベース**: 
+  - profilesテーブル（画像・動画URLフィールド + 拡張プロフィール項目10項目追加済み）
+  - likesテーブル（いいね記録、マッチング用）
+  - matchesテーブル（マッチ成立記録）
 - **Storage**: profile-mediaバケット（Public設定、RLSポリシー設定済み）
+- **EdgeFunctions**: 
+  - get-recommended-profiles（おすすめプロフィール取得）
+  - get-matches-with-profiles（マッチリスト取得）
+  - get-partner-profile（相手プロフィール安全取得）
 - **権限**: 認証ユーザーが自分のメディアファイルのみCRUD可能
 - **マスターデータ**: profile_optionsテーブル（選択項目データ管理）
 
-### 既知の技術課題
+### 既知の技術課題（解決済み）
 - Picker コンポーネントのプラットフォーム間表示差異（調整済み）
 - プロフィール存在確認とナビゲーション制御の同期処理
 - React NativeでのBlob処理問題（FormData方式で解決済み）
 - `react-native-deck-swiper`ライブラリでの`length`プロパティエラー（自作スワイパーで解決済み）
+- expo-avの非推奨警告（expo-video/expo-audioに移行済み）
+- expo-image-pickerの非推奨警告（MediaType配列形式に対応済み）
 
 ### 最新の実装詳細
 
@@ -215,3 +242,15 @@ npx expo start
 - **包括的検証**: 全プロフィール項目のバリデーション
 - **エラーハンドリング**: 日本語エラーメッセージ、項目別検証
 - **制約チェック**: 身長範囲、テキスト長、選択肢値の検証
+
+#### MatchingServiceサービス（新規）
+- **EdgeFunction連携**: get-matches-with-profiles、get-partner-profile
+- **セキュアAPI**: JWT認証 + マッチ関係確認
+- **データ統合**: マッチリスト + プロフィール情報の一括取得
+- **エラーハンドリング**: 認証エラー、権限エラーの適切な処理
+
+#### MatchListScreen・PartnerProfileScreen（新規）
+- **マッチリスト表示**: EdgeFunction経由での安全なマッチ情報表示
+- **相手プロフィール詳細**: マッチした相手の包括的プロフィール表示
+- **画面遷移**: タップでプロフィール詳細、チャット準備（Phase2）
+- **プライバシー保護**: 希望条件など、見せるべきでない情報の除外

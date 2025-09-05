@@ -252,6 +252,63 @@ export class MatchingService {
     }
   }
 
+  static async getMatchesWithProfiles(): Promise<any[]> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        throw new Error('認証が必要です')
+      }
+
+      const { data, error } = await supabase.functions.invoke('get-matches-with-profiles', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      })
+
+      if (error) {
+        throw new Error(error.message || 'マッチ取得に失敗しました')
+      }
+
+      if (!data || !data.matches) {
+        throw new Error('マッチデータが取得できませんでした')
+      }
+
+      return data.matches
+    } catch (error: any) {
+      console.error('マッチリスト取得エラー:', error)
+      throw new Error(error.message || 'マッチリストの取得に失敗しました')
+    }
+  }
+
+  static async getPartnerProfile(partnerId: string): Promise<any> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        throw new Error('認証が必要です')
+      }
+
+      const { data, error } = await supabase.functions.invoke('get-partner-profile', {
+        body: { partnerId },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      })
+
+      if (error) {
+        throw new Error(error.message || '相手プロフィール取得に失敗しました')
+      }
+
+      if (!data || !data.profile) {
+        throw new Error('相手プロフィールデータが取得できませんでした')
+      }
+
+      return data.profile
+    } catch (error: any) {
+      console.error('相手プロフィール取得エラー:', error)
+      throw new Error(error.message || '相手プロフィールの取得に失敗しました')
+    }
+  }
+
   static async getRecommendedProfiles(limit: number = 10): Promise<ProfileWithLike[]> {
     try {
       // 認証状態の確認

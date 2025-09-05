@@ -26,37 +26,18 @@ interface MatchWithProfile extends MatchData {
   }
 }
 
-export const MatchListScreen: React.FC = () => {
+interface Props {
+  navigation: any
+}
+
+export const MatchListScreen: React.FC<Props> = ({ navigation }) => {
   const [matches, setMatches] = useState<MatchWithProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
   const loadMatches = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const matchData = await MatchingService.getMatches()
-      
-      // 相手のプロフィール情報を取得
-      const matchesWithProfiles: MatchWithProfile[] = []
-      for (const match of matchData) {
-        const partnerId = match.user1_id === user.id ? match.user2_id : match.user1_id
-        
-        const { data: profileData, error } = await supabase
-          .from('profiles')
-          .select('id, display_name, age, prefecture, main_image_url')
-          .eq('id', partnerId)
-          .single()
-
-        if (!error && profileData) {
-          matchesWithProfiles.push({
-            ...match,
-            partnerProfile: profileData
-          })
-        }
-      }
-
+      const matchesWithProfiles = await MatchingService.getMatchesWithProfiles()
       setMatches(matchesWithProfiles)
     } catch (error: any) {
       console.error('マッチ取得エラー:', error)
@@ -122,8 +103,10 @@ export const MatchListScreen: React.FC = () => {
     <TouchableOpacity
       style={styles.matchCard}
       onPress={() => {
-        // TODO: チャット画面に遷移
-        Alert.alert('チャット機能', 'チャット機能は次のPhaseで実装予定です')
+        navigation.navigate('PartnerProfile', {
+          partnerId: item.partnerProfile.id,
+          partnerName: item.partnerProfile.display_name
+        })
       }}
     >
       <View style={styles.matchContent}>

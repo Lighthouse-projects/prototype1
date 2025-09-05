@@ -11,6 +11,7 @@ import { PartnersScreen } from '../screens/PartnersScreen'
 import { ChatListScreen } from '../screens/ChatListScreen'
 import { MatchListScreen } from '../screens/MatchListScreen'
 import { MyPageScreen } from '../screens/MyPageScreen'
+import { PartnerProfileScreen } from '../screens/PartnerProfileScreen'
 import { useAuth } from '../contexts/AuthContext'
 
 export type MainStackParamList = {
@@ -18,6 +19,10 @@ export type MainStackParamList = {
   TabNavigator: undefined
   ProfileView: undefined
   ProfileEdit: undefined
+  PartnerProfile: {
+    partnerId: string
+    partnerName: string
+  }
 }
 
 export type MainTabParamList = {
@@ -171,6 +176,16 @@ export const MainNavigator: React.FC = () => {
           headerStyle: { backgroundColor: '#fff', elevation: 0, shadowOpacity: 0 },
           headerTintColor: '#007AFF',
         }}
+      />
+      <Stack.Screen 
+        name="PartnerProfile" 
+        component={PartnerProfileScreen}
+        options={({ route }) => ({
+          headerShown: true,
+          title: `${route.params.partnerName}さんのプロフィール`,
+          headerStyle: { backgroundColor: '#fff', elevation: 0, shadowOpacity: 0 },
+          headerTintColor: '#007AFF',
+        })}
       />
     </Stack.Navigator>
   )

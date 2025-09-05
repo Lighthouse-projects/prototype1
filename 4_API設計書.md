@@ -943,3 +943,114 @@ curl -X GET "https://api.matchingapp.com/api/points/history?page=1&limit=20" \
 - **413 Payload Too Large**: `FILE_TOO_LARGE`
 - **429 Too Many Requests**: `RATE_LIMIT_EXCEEDED`
 - **500 Internal Server Error**: `INTERNAL_ERROR`
+
+### get-matches-with-profiles
+**認証**: 必要  
+**説明**: マッチリストとプロフィール情報を一括取得（セキュア）
+
+#### リクエスト
+```typescript
+// POST /functions/v1/get-matches-with-profiles
+// ボディなし（認証ユーザーのマッチを取得）
+```
+
+#### レスポンス
+```typescript
+{
+  "matches": [
+    {
+      "id": "match-uuid",
+      "user1_id": "uuid1",
+      "user2_id": "uuid2", 
+      "status": "matched",
+      "matched_at": "2024-01-01T10:00:00Z",
+      "last_message_at": "2024-01-01T11:00:00Z",
+      "partnerProfile": {
+        "id": "uuid",
+        "display_name": "山田花子",
+        "age": 25,
+        "prefecture": "東京都",
+        "main_image_url": "https://..."
+      }
+    }
+  ]
+}
+```
+
+#### 技術仕様
+- **実行環境**: Deno Runtime
+- **データベースアクセス**: Service Role Key使用
+- **セキュリティ**: JWT認証 + RLSバイパス
+- **機能**:
+  - 認証ユーザーのマッチ情報を取得
+  - 各マッチの相手プロフィール情報を付加
+  - status='matched'のみ対象
+  - matched_at降順でソート
+
+#### エラーハンドリング
+- 400: Bad Request（認証エラー）
+- 401: Unauthorized（JWT無効）
+- 500: Internal Server Error（データベースエラー）
+
+### get-partner-profile
+**認証**: 必要  
+**説明**: マッチした相手の詳細プロフィール取得（セキュア）
+
+#### リクエスト
+```typescript
+// POST /functions/v1/get-partner-profile
+{
+  "partnerId": "uuid"
+}
+```
+
+#### レスポンス
+```typescript
+{
+  "profile": {
+    "id": "uuid",
+    "display_name": "山田花子",
+    "age": 25,
+    "gender": "female",
+    "prefecture": "東京都",
+    "city": "渋谷区",
+    "occupation": "デザイナー",
+    "main_image_url": "https://...",
+    "additional_images": ["https://..."],
+    "video_url": "https://...",
+    "bio": "自己紹介文...",
+    "meeting_purpose": "serious_relationship",
+    "nickname": "はなちゃん",
+    "height": 160,
+    "body_type": "average",
+    "hometown_prefecture": "大阪府",
+    "drinking": "sometimes",
+    "smoking": "never",
+    "free_days": "weekends",
+    "meeting_frequency": "weekly",
+    "future_dreams": "将来の夢...",
+    "profile_completion_rate": 85,
+    "created_at": "2024-01-01T09:00:00Z",
+    "updated_at": "2024-01-02T10:00:00Z"
+    // 注意: 希望条件(preferred_*)は除外してプライバシー保護
+  }
+}
+```
+
+#### 技術仕様
+- **実行環境**: Deno Runtime  
+- **データベースアクセス**: Service Role Key使用
+- **セキュリティ**: JWT認証 + マッチ関係確認 + RLSバイパス
+- **プライバシー保護**:
+  - マッチしていない相手のプロフィールはアクセス拒否
+  - 希望条件（preferred_min_age, preferred_max_age, preferred_prefecture）は非表示
+- **機能**:
+  1. ユーザー認証確認
+  2. 指定されたpartnerIdとのマッチ関係確認
+  3. マッチが確認できた場合のみプロフィール情報を返却
+
+#### エラーハンドリング
+- 400: Bad Request（partnerId不正、マッチ関係なし）
+- 401: Unauthorized（JWT無効）
+- 404: Not Found（プロフィール不存在）
+- 500: Internal Server Error（データベースエラー）
