@@ -30,6 +30,30 @@ export interface ProfileWithLike {
 }
 
 export class MatchingService {
+  static async findMatchWithPartner(partnerId: string): Promise<{ match_id: string } | null> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('認証が必要です')
+
+      const { data: match, error } = await supabase
+        .from('matches')
+        .select('id')
+        .eq('status', 'matched')
+        .or(`and(user1_id.eq.${user.id},user2_id.eq.${partnerId}),and(user1_id.eq.${partnerId},user2_id.eq.${user.id})`)
+        .single()
+
+      if (error) {
+        console.log('No match found:', error)
+        return null
+      }
+
+      return { match_id: match.id }
+    } catch (error: any) {
+      console.error('Error finding match:', error)
+      return null
+    }
+  }
+
   static async sendLike(toUserId: string, isSuperLike: boolean = false): Promise<boolean> {
     try {
       const { data: { user } } = await supabase.auth.getUser()

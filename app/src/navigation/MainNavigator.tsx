@@ -9,6 +9,7 @@ import { HomeScreen } from '../screens/HomeScreen'
 import { BoshuScreen } from '../screens/BoshuScreen'
 import { PartnersScreen } from '../screens/PartnersScreen'
 import { ChatListScreen } from '../screens/ChatListScreen'
+import { ChatScreen } from '../screens/ChatScreen'
 import { MatchListScreen } from '../screens/MatchListScreen'
 import { MyPageScreen } from '../screens/MyPageScreen'
 import { PartnerProfileScreen } from '../screens/PartnerProfileScreen'
@@ -22,6 +23,12 @@ export type MainStackParamList = {
   PartnerProfile: {
     partnerId: string
     partnerName: string
+  }
+  Chat: {
+    matchId: string
+    chatRoomId?: string
+    partnerName: string
+    partnerImage?: string
   }
 }
 
@@ -183,6 +190,16 @@ export const MainNavigator: React.FC = () => {
         options={({ route }) => ({
           headerShown: true,
           title: `${route.params.partnerName}さんのプロフィール`,
+          headerStyle: { backgroundColor: '#fff', elevation: 0, shadowOpacity: 0 },
+          headerTintColor: '#007AFF',
+        })}
+      />
+      <Stack.Screen 
+        name="Chat" 
+        component={ChatScreen}
+        options={({ route }) => ({
+          headerShown: true,
+          title: `${route.params.partnerName}さんとのチャット`,
           headerStyle: { backgroundColor: '#fff', elevation: 0, shadowOpacity: 0 },
           headerTintColor: '#007AFF',
         })}

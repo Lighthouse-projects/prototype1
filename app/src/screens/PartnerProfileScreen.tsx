@@ -311,8 +311,23 @@ export const PartnerProfileScreen: React.FC<Props> = ({ navigation, route }) => 
       {/* チャットボタン */}
       <TouchableOpacity
         style={styles.chatButton}
-        onPress={() => {
-          Alert.alert('チャット機能', 'チャット機能は次のPhaseで実装予定です')
+        onPress={async () => {
+          try {
+            // 実際のマッチIDを検索
+            const matchResponse = await MatchingService.findMatchWithPartner(partnerId)
+            if (matchResponse) {
+              navigation.navigate('Chat', {
+                matchId: matchResponse.match_id,
+                partnerName: partnerName,
+                partnerImage: profile.main_image_url
+              })
+            } else {
+              Alert.alert('エラー', 'マッチ情報が見つかりません')
+            }
+          } catch (error: any) {
+            console.error('Match search error:', error)
+            Alert.alert('エラー', 'チャット画面への移動に失敗しました')
+          }
         }}
       >
         <Text style={styles.chatButtonText}>💬 {partnerName}さんとチャット</Text>
