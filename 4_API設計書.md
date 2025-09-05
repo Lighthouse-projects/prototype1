@@ -622,7 +622,192 @@ curl -X DELETE https://api.matchingapp.com/api/matches/match-123 \
 **レスポンス**: 200 OK  
 **エラー**: 401 Unauthorized, 404 Not Found
 
-## メッセージ関連
+## チャット機能 - Supabase Edge Functions
+
+### POST /functions/v1/get-chat-list
+**認証**: 必要 (Bearer Token)  
+**説明**: チャット一覧とプロフィール情報を一括取得（セキュア）  
+**実装形態**: Supabase Edge Function  
+
+**セキュリティ機能**:
+- Service Role Keyによるサーバーサイドデータアクセス
+- RLSポリシーを迂回した安全なデータ統合
+- マッチしているユーザーのみ取得
+- 未読数・最終メッセージの効率的な計算
+
+リクエスト例:
+```bash
+curl -X POST https://gcdvaqpgwflnkrdcjkkg.supabase.co/functions/v1/get-chat-list \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json"
+```
+
+レスポンス例（成功）:
+```json
+{
+  "chats": [
+    {
+      "chat_room_id": "room-uuid",
+      "match_id": "match-uuid",
+      "last_message": "こんにちは！",
+      "last_message_at": "2024-01-01T15:30:00Z",
+      "unread_count": 2,
+      "partner": {
+        "id": "partner-uuid",
+        "display_name": "山田花子",
+        "main_image_url": "https://cdn.example.com/images/user2_1.jpg"
+      }
+    }
+  ]
+}
+```
+
+**データフロー**:
+1. JWT認証でユーザー確認
+2. ユーザーのマッチ一覧取得（status='matched'）
+3. 各マッチの相手プロフィール情報取得
+4. チャットルーム情報と最終メッセージ取得
+5. 未読メッセージ数計算
+6. 統合されたチャットデータを返却
+
+**エラーレスポンス**:
+```json
+{
+  "error": "認証に失敗しました"
+}
+```
+
+**レスポンス**: 200 OK  
+**エラー**: 401 Unauthorized, 500 Internal Server Error
+
+### POST /functions/v1/get-chat-messages
+**認証**: 必要 (Bearer Token)  
+**説明**: チャットルームのメッセージ履歴取得（ページネーション対応）  
+**実装形態**: Supabase Edge Function  
+
+リクエスト例:
+```bash
+curl -X POST https://gcdvaqpgwflnkrdcjkkg.supabase.co/functions/v1/get-chat-messages \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "chat_room_id": "room-uuid",
+    "limit": 50,
+    "offset": 0
+  }'
+```
+
+リクエストボディ:
+```json
+{
+  "chat_room_id": "room-uuid",
+  "limit": 50,
+  "offset": 0
+}
+```
+
+レスポンス例（成功）:
+```json
+{
+  "messages": [
+    {
+      "id": "msg-uuid",
+      "content": "こんにちは！よろしくお願いします",
+      "message_type": "text",
+      "sent_at": "2024-01-01T15:30:00Z",
+      "read_at": "2024-01-01T15:35:00Z",
+      "sender": {
+        "id": "sender-uuid",
+        "display_name": "山田花子",
+        "main_image_url": "https://cdn.example.com/images/user2_1.jpg"
+      },
+      "is_own_message": false
+    }
+  ],
+  "has_more": true
+}
+```
+
+**機能**:
+- チャットルームへのアクセス権確認
+- メッセージの降順取得（最新が先頭）
+- 送信者プロフィール情報付加
+- 自分のメッセージかどうかの判定
+- ページネーション対応
+
+**レスポンス**: 200 OK  
+**エラー**: 400 Bad Request, 401 Unauthorized, 403 Forbidden
+
+### POST /functions/v1/send-message
+**認証**: 必要 (Bearer Token)  
+**説明**: メッセージ送信とチャットルーム自動管理  
+**実装形態**: Supabase Edge Function  
+
+リクエスト例:
+```bash
+curl -X POST https://gcdvaqpgwflnkrdcjkkg.supabase.co/functions/v1/send-message \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "match_id": "match-uuid",
+    "content": "こんにちは！元気ですか？",
+    "message_type": "text"
+  }'
+```
+
+リクエストボディ:
+```json
+{
+  "match_id": "match-uuid",
+  "content": "こんにちは！元気ですか？",
+  "message_type": "text"
+}
+```
+
+**バリデーション**:
+- content: 1～1000文字（必須）
+- message_type: 'text', 'image', 'system'のいずれか
+- match_id: 有効なマッチIDかつアクセス権確認
+
+レスポンス例（成功）:
+```json
+{
+  "message": {
+    "id": "msg-uuid",
+    "content": "こんにちは！元気ですか？",
+    "message_type": "text",
+    "sent_at": "2024-01-01T16:00:00Z",
+    "read_at": null,
+    "sender": {
+      "id": "sender-uuid",
+      "display_name": "田中太郎",
+      "main_image_url": "https://cdn.example.com/images/user1_1.jpg"
+    },
+    "is_own_message": true
+  },
+  "chat_room_id": "room-uuid"
+}
+```
+
+**機能フロー**:
+1. JWT認証でユーザー確認
+2. match_idのアクセス権確認
+3. チャットルーム取得or自動作成（create_or_get_chat_room関数）
+4. メッセージ挿入
+5. PostgreSQLトリガーでチャットルーム更新
+6. Supabase Realtimeで即座に配信
+
+**レスポンス**: 200 OK  
+**エラー**: 400 Bad Request, 401 Unauthorized, 403 Forbidden
+
+**技術仕様**:
+- **実行環境**: Deno Runtime
+- **アクセス制御**: JWT認証 + Service Role Key
+- **リアルタイム連携**: PostgreSQL トリガー + Supabase Realtime
+- **パフォーマンス**: 平均応答時間 < 500ms
+- **制限**: レート制限（ユーザーあたり120メッセージ/分）
+
+## メッセージ関連（従来のREST API - 参考）
 ### GET /api/matches/{match_id}/messages
 **認証**: 必要  
 **説明**: マッチのメッセージ履歴取得
