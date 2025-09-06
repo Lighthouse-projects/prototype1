@@ -335,15 +335,100 @@ curl -X DELETE https://api.matchingapp.com/api/profiles/images/image-123 \
 **レスポンス**: 200 OK  
 **エラー**: 401 Unauthorized, 404 Not Found
 
-## 発見・検索関連
-### POST /functions/v1/get-recommended-profiles (Supabase Edge Function)
+## Supabase Edge Functions - プロフィール検索・推奨システム
+
+### POST /functions/v1/search-profiles (Supabase Edge Function)
 **認証**: 必要 (Bearer Token)  
-**説明**: セキュアな推奨プロフィール取得  
+**説明**: セキュアなプロフィール検索（条件フィルタリング対応）
 **実装形態**: Supabase Edge Function  
+**実装状況**: ⚠️ 仕様策定済み・実装必要
 
 **セキュリティ機能**:
 - Service Role Keyによるサーバーサイドデータアクセス
 - RLSポリシーを迂回した安全なデータ取得
+- いいね済みユーザーの自動除外
+- 同性ユーザーの除外フィルタリング
+- 年齢・都道府県・性別による高速フィルタリング
+
+リクエスト例:
+```bash
+curl -X POST https://gcdvaqpgwflnkrdcjkkg.supabase.co/functions/v1/search-profiles \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "ageMin": 25,
+      "ageMax": 35,
+      "prefecture": "東京都"
+    },
+    "limit": 20
+  }'
+```
+
+リクエストボディ:
+```json
+{
+  "filters": {
+    "ageMin": 25,
+    "ageMax": 35, 
+    "prefecture": "東京都"
+  },
+  "limit": 20
+}
+```
+
+**パラメータ**:
+- `filters` (object, optional): 検索条件
+  - `ageMin` (number): 最小年齢
+  - `ageMax` (number): 最大年齢
+  - `prefecture` (string): 都道府県名
+- `limit` (number): 取得するプロフィール数（デフォルト: 20、最大: 50）
+
+レスポンス例（成功）:
+```json
+{
+  "profiles": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "display_name": "山田花子",
+      "age": 26,
+      "prefecture": "東京都",
+      "occupation": "デザイナー",
+      "main_image_url": "https://cdn.example.com/images/user2_1.jpg",
+      "additional_images": [
+        "https://cdn.example.com/images/user2_2.jpg"
+      ],
+      "bio": "よろしくお願いします",
+      "liked_by_current_user": false
+    }
+  ]
+}
+```
+
+**フィルタリングロジック**:
+1. 現在のユーザー以外
+2. プロフィール必須項目が完成済み（display_name, age, gender）
+3. 指定された年齢範囲内（未指定の場合は制限なし）
+4. 指定された都道府県（未指定の場合は制限なし）
+5. 異性のみ（同性除外フィルタ）
+6. いいね済みユーザーを除外
+7. random()でシャッフル後にlimit適用
+
+**技術仕様**:
+- **実行環境**: Deno Runtime
+- **アクセス制御**: JWT認証 + Service Role Key
+- **パフォーマンス**: 平均応答時間 < 1秒
+- **制限**: レート制限（ユーザーあたり60リクエスト/分）
+- **データベース**: 効率的なインデックス使用（age, prefecture, gender）
+
+### POST /functions/v1/get-recommended-profiles (推奨プロフィール取得)
+**認証**: 必要 (Bearer Token)  
+**説明**: 条件なしでの推奨プロフィール取得（search-profilesの内部利用）
+**実装形態**: search-profilesを空フィルタで呼び出し  
+**実装状況**: ✅ 完全実装済み
+
+**セキュリティ機能**:
+- search-profilesと同等のセキュリティ機能
 - いいね済みユーザーの自動除外
 - 年齢・プロフィール完成度による自動フィルタリング
 
@@ -356,6 +441,8 @@ curl -X POST https://gcdvaqpgwflnkrdcjkkg.supabase.co/functions/v1/get-recommend
     "limit": 10
   }'
 ```
+
+**注意**: 実装上は内部的に `search-profiles` を空フィルタ `{}` で呼び出している
 
 リクエストボディ:
 ```json
@@ -389,10 +476,8 @@ curl -X POST https://gcdvaqpgwflnkrdcjkkg.supabase.co/functions/v1/get-recommend
 ```
 
 **フィルタリングロジック**:
-1. 現在のユーザー以外
-2. プロフィール必須項目が完成済み（display_name, age, gender）
-3. 現在のユーザーの希望年齢範囲内
-4. いいね済みユーザーを除外
+1. search-profilesと同等のロジックを適用
+2. 条件なしでの推奨プロフィール取得
 
 **エラーレスポンス**:
 ```json
@@ -412,9 +497,10 @@ curl -X POST https://gcdvaqpgwflnkrdcjkkg.supabase.co/functions/v1/get-recommend
 
 **技術仕様**:
 - **実行環境**: Deno Runtime
-- **アクセス制御**: JWT認証 + Service Role Key
+- **アクセス制御**: JWT認証 + Service Role Key  
 - **パフォーマンス**: 平均応答時間 < 1秒
 - **制限**: レート制限（ユーザーあたり60リクエスト/分）
+- **実装**: MatchingService.getRecommendedProfiles() で search-profiles を呼び出し
 
 ### GET /api/discover (従来のREST API - Phase2実装予定)
 **認証**: 必要  

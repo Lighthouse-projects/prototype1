@@ -351,29 +351,30 @@ export class MatchingService {
 
   static async getRecommendedProfiles(limit: number = 10): Promise<ProfileWithLike[]> {
     try {
-      // 認証状態の確認
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.access_token) {
         throw new Error('認証が必要です')
       }
 
-      // Edge Functionを呼び出し
-      const { data, error } = await supabase.functions.invoke('get-recommended-profiles', {
-        body: { limit },
+      const { data, error } = await supabase.functions.invoke('search-profiles', {
+        body: { 
+          filters: {},
+          limit: limit
+        },
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
       })
 
       if (error) {
-        throw new Error(error.message || 'プロフィール取得に失敗しました')
+        throw new Error(error.message || 'おすすめプロフィール取得に失敗しました')
       }
 
       if (!data || !data.profiles) {
         throw new Error('プロフィールデータが取得できませんでした')
       }
 
-      return data.profiles as ProfileWithLike[]
+      return data.profiles
     } catch (error: any) {
       console.error('推奨プロフィール取得エラー:', error)
       throw new Error(error.message || 'おすすめプロフィールの取得に失敗しました')
@@ -382,60 +383,38 @@ export class MatchingService {
 
   static async searchProfiles(filters: SearchFilters, limit: number = 20): Promise<ProfileWithLike[]> {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('認証が必要です')
-
-      let query = supabase
-        .from('profiles')
-        .select(`
-          id,
-          display_name,
-          age,
-          prefecture,
-          occupation,
-          main_image_url,
-          additional_images,
-          bio
-        `)
-        .neq('id', user.id) // 自分を除外
-
-      // 年齢フィルタ
-      if (filters.ageMin) {
-        query = query.gte('age', filters.ageMin)
-      }
-      if (filters.ageMax) {
-        query = query.lte('age', filters.ageMax)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        throw new Error('認証が必要です')
       }
 
-      // 都道府県フィルタ
-      if (filters.prefecture) {
-        query = query.ilike('prefecture', `%${filters.prefecture}%`)
+      console.log('🔍 searchProfiles - EdgeFunction呼び出し開始')
+      console.log('- フィルタ:', filters)
+      console.log('- 取得件数制限:', limit)
+
+      const { data, error } = await supabase.functions.invoke('search-profiles', {
+        body: { 
+          filters: filters,
+          limit: limit
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      })
+
+      if (error) {
+        console.error('❌ EdgeFunction実行エラー:', error)
+        throw new Error(error.message || 'プロフィール検索に失敗しました')
       }
 
-      const { data, error } = await query
-        .limit(limit)
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-
-      // 既にいいねしたかどうかをチェック
-      if (data && data.length > 0) {
-        const profileIds = data.map(profile => profile.id)
-        const { data: likes } = await supabase
-          .from('likes')
-          .select('to_user_id')
-          .eq('from_user_id', user.id)
-          .in('to_user_id', profileIds)
-
-        const likedUserIds = likes?.map(like => like.to_user_id) || []
-
-        return data.map(profile => ({
-          ...profile,
-          liked_by_current_user: likedUserIds.includes(profile.id)
-        }))
+      if (!data || !data.profiles) {
+        console.error('❌ プロフィールデータが取得できませんでした')
+        throw new Error('プロフィールデータが取得できませんでした')
       }
 
-      return data || []
+      console.log('📊 EdgeFunction検索結果:', data.profiles.length, '件')
+
+      return data.profiles
     } catch (error: any) {
       console.error('プロフィール検索エラー:', error)
       throw new Error(error.message || 'プロフィール検索に失敗しました')
