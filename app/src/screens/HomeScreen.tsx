@@ -24,6 +24,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [searchProfiles, setSearchProfiles] = useState<ProfileWithLike[]>([])
   const [loading, setLoading] = useState(true)
   const [searchLoading, setSearchLoading] = useState(false)
+  const [searchInitialized, setSearchInitialized] = useState(false)
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     ageMin: '',
     ageMax: '',
@@ -46,21 +47,51 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }
   }
 
+  const loadInitialSearchResults = async () => {
+    try {
+      setSearchLoading(true)
+      console.log('🏠 loadInitialSearchResults 開始')
+      // 条件指定なしで異性プロフィールを取得
+      const searchResults = await MatchingService.searchProfiles({}, 20)
+      console.log('🏠 検索結果受信:', searchResults.length, '件')
+      setSearchProfiles(searchResults)
+      setSearchInitialized(true)
+    } catch (error: any) {
+      console.error('🏠 検索エラー:', error)
+      Alert.alert('エラー', error.message || 'プロフィールの読み込みに失敗しました')
+    } finally {
+      setSearchLoading(false)
+    }
+  }
+
   const handleSearch = async () => {
     try {
       setSearchLoading(true)
+      console.log('🏠 handleSearch 開始', searchFilters)
       // 検索フィルタを使用してプロフィールを検索
       const filters: ServiceSearchFilters = {
         ageMin: searchFilters.ageMin ? parseInt(searchFilters.ageMin) : undefined,
         ageMax: searchFilters.ageMax ? parseInt(searchFilters.ageMax) : undefined,
         prefecture: searchFilters.prefecture || undefined
       }
+      console.log('🏠 フィルタ:', filters)
       const searchResults = await MatchingService.searchProfiles(filters)
+      console.log('🏠 検索結果:', searchResults.length, '件')
       setSearchProfiles(searchResults)
+      setSearchInitialized(true)
     } catch (error: any) {
+      console.error('🏠 検索エラー:', error)
       Alert.alert('エラー', error.message || '検索に失敗しました')
     } finally {
       setSearchLoading(false)
+    }
+  }
+
+  // 検索タブ選択時に初回読み込み
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab)
+    if (tab === 'search' && !searchInitialized && searchProfiles.length === 0) {
+      loadInitialSearchResults()
     }
   }
 
@@ -159,6 +190,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
               <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
                 <Text style={styles.searchButtonText}>検索</Text>
               </TouchableOpacity>
+              
+              {/* デバッグ用: 条件未指定検索ボタン */}
+              <TouchableOpacity style={[styles.searchButton, { backgroundColor: '#999' }]} onPress={loadInitialSearchResults}>
+                <Text style={styles.searchButtonText}>全件検索</Text>
+              </TouchableOpacity>
               <TouchableOpacity style={styles.clearButton} onPress={clearSearch}>
                 <Text style={styles.clearButtonText}>クリア</Text>
               </TouchableOpacity>
@@ -179,15 +215,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 onSwipeTop={handleSwipeTop}
                 onMatchFound={handleMatchFound}
               />
-            ) : (
+            ) : searchInitialized ? (
               <View style={styles.noResultsContainer}>
                 <Text style={styles.noResultsText}>
                   {searchFilters.ageMin || searchFilters.ageMax || searchFilters.prefecture
                     ? '検索条件に該当するプロフィールが見つかりませんでした'
-                    : '検索条件を入力して検索してください'}
+                    : 'プロフィールが見つかりませんでした'}
                 </Text>
               </View>
-            )}
+            ) : null}
           </View>
         </ScrollView>
       )
@@ -204,7 +240,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'recommend' && styles.activeTab]}
-          onPress={() => setActiveTab('recommend')}
+          onPress={() => handleTabChange('recommend')}
         >
           <Text style={[styles.tabText, activeTab === 'recommend' && styles.activeTabText]}>
             おすすめ
@@ -212,7 +248,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'search' && styles.activeTab]}
-          onPress={() => setActiveTab('search')}
+          onPress={() => handleTabChange('search')}
         >
           <Text style={[styles.tabText, activeTab === 'search' && styles.activeTabText]}>
             検索

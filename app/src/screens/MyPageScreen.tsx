@@ -1,13 +1,44 @@
-import React from 'react'
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native'
+import React, { useState, useEffect } from 'react'
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 
 interface Props {
   navigation: any
 }
 
+interface Profile {
+  id: string
+  display_name: string
+}
+
 export const MyPageScreen: React.FC<Props> = ({ navigation }) => {
   const { signOut, user } = useAuth()
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadProfile()
+  }, [])
+
+  const loadProfile = async () => {
+    try {
+      if (!user) return
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, display_name')
+        .eq('id', user.id)
+        .single()
+
+      if (error) throw error
+      setProfile(data)
+    } catch (error) {
+      console.error('プロフィール取得エラー:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSignOut = async () => {
     try {
@@ -25,7 +56,16 @@ export const MyPageScreen: React.FC<Props> = ({ navigation }) => {
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         <View style={styles.userInfo}>
-          <Text style={styles.userEmail}>{user?.email}</Text>
+          {loading ? (
+            <ActivityIndicator size="small" color="#4ECDC4" />
+          ) : (
+            <>
+              {profile && (
+                <Text style={styles.userName}>{profile.display_name}</Text>
+              )}
+              <Text style={styles.userEmail}>{user?.email}</Text>
+            </>
+          )}
         </View>
 
         <View style={styles.menuContainer}>
@@ -118,10 +158,16 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     alignItems: 'center',
   },
+  userName: {
+    fontSize: 20,
+    color: '#333',
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
   userEmail: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#666',
-    fontWeight: '500',
+    fontWeight: '400',
   },
   menuContainer: {
     backgroundColor: '#fff',
