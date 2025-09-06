@@ -32,6 +32,12 @@ export interface ProfileWithLike {
   liked_by_current_user?: boolean
 }
 
+export interface SearchFilters {
+  ageMin?: number
+  ageMax?: number
+  prefecture?: string
+}
+
 export class MatchingService {
   static async findMatchWithPartner(partnerId: string): Promise<{ match_id: string } | null> {
     try {
@@ -371,6 +377,68 @@ export class MatchingService {
     } catch (error: any) {
       console.error('推奨プロフィール取得エラー:', error)
       throw new Error(error.message || 'おすすめプロフィールの取得に失敗しました')
+    }
+  }
+
+  static async searchProfiles(filters: SearchFilters, limit: number = 20): Promise<ProfileWithLike[]> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('認証が必要です')
+
+      let query = supabase
+        .from('profiles')
+        .select(`
+          id,
+          display_name,
+          age,
+          prefecture,
+          occupation,
+          main_image_url,
+          additional_images,
+          bio
+        `)
+        .neq('id', user.id) // 自分を除外
+
+      // 年齢フィルタ
+      if (filters.ageMin) {
+        query = query.gte('age', filters.ageMin)
+      }
+      if (filters.ageMax) {
+        query = query.lte('age', filters.ageMax)
+      }
+
+      // 都道府県フィルタ
+      if (filters.prefecture) {
+        query = query.ilike('prefecture', `%${filters.prefecture}%`)
+      }
+
+      const { data, error } = await query
+        .limit(limit)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+
+      // 既にいいねしたかどうかをチェック
+      if (data && data.length > 0) {
+        const profileIds = data.map(profile => profile.id)
+        const { data: likes } = await supabase
+          .from('likes')
+          .select('to_user_id')
+          .eq('from_user_id', user.id)
+          .in('to_user_id', profileIds)
+
+        const likedUserIds = likes?.map(like => like.to_user_id) || []
+
+        return data.map(profile => ({
+          ...profile,
+          liked_by_current_user: likedUserIds.includes(profile.id)
+        }))
+      }
+
+      return data || []
+    } catch (error: any) {
+      console.error('プロフィール検索エラー:', error)
+      throw new Error(error.message || 'プロフィール検索に失敗しました')
     }
   }
 }
