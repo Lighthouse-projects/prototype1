@@ -45,7 +45,7 @@ const ChatBubble: React.FC<{
         />
       </Svg>
       <View style={{ 
-        padding: 5, 
+        padding: 12, 
         paddingBottom: isOwn ? 16 : 16,
         paddingLeft: isOwn ? 12 : 16,
         paddingRight: isOwn ? 16 : 16,
@@ -352,7 +352,6 @@ export const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
               styles.partnerBubbleContainer
             ]}
           >
-            <Text style={styles.senderName}>{item.sender.display_name}</Text>
             <Text style={[
               styles.messageText,
               styles.partnerMessageText
