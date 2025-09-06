@@ -8,15 +8,54 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  Image,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
 } from 'react-native'
+import { Image } from 'expo-image'
 import { useFocusEffect } from '@react-navigation/native'
 import { Ionicons } from '@expo/vector-icons'
+import Svg, { Path } from 'react-native-svg'
 import { ChatService, MessageWithSender } from '../services/chatService'
 import { SoundService } from '../services/soundService'
+
+// LINEスタイルの吹き出しコンポーネント
+const ChatBubble: React.FC<{
+  children: React.ReactNode
+  isOwn: boolean
+  style?: any
+}> = ({ children, isOwn, style }) => {
+  return (
+    <View style={[{ position: 'relative' }, style]}>
+      <Svg
+        width="100%"
+        height="100%"
+        style={{ position: 'absolute' }}
+        viewBox={isOwn ? "0 0 100 100" : "-15 0 115 100"}
+        preserveAspectRatio="none"
+      >
+        <Path
+          d={isOwn 
+            ? "M15,0 L90,0 Q100,0 100,15 L100,70 Q100,85 85,85 L90,90 L75,85 L15,85 Q0,85 0,70 L0,15 Q0,0 15,0"
+            : "M15,0 L85,0 Q100,0 100,15 L100,70 Q100,85 85,85 L30,85 L15,90 L15,85 Q0,85 0,70 L0,15 Q0,0 15,0"
+          }
+          fill={isOwn ? "#007AFF" : "#ffffff"}
+          stroke={isOwn ? "none" : "#e0e0e0"}
+          strokeWidth={isOwn ? 0 : 1}
+        />
+      </Svg>
+      <View style={{ 
+        padding: 5, 
+        paddingBottom: isOwn ? 16 : 16,
+        paddingLeft: isOwn ? 12 : 16,
+        paddingRight: isOwn ? 16 : 16,
+        zIndex: 1 
+      }}>
+        {children}
+      </View>
+    </View>
+  )
+}
 
 interface Props {
   navigation: any
@@ -87,6 +126,7 @@ export const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
         setMessages(prev => [...newMessages, ...prev])
       } else {
         setMessages(newMessages)
+        
         // 初回ロード時（オフセット0）かつ最下部付近にいる場合のみスクロール
         if (offset === 0 && newMessages.length > 0 && (loading || isNearBottom) && !skipAutoScroll) {
           setTimeout(() => {
@@ -264,7 +304,10 @@ export const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
               <Image
                 source={{ uri: item.sender.main_image_url }}
                 style={styles.avatar}
-                resizeMode="cover"
+                contentFit="cover"
+                cachePolicy="memory-disk"
+                transition={200}
+                placeholder={{ blurhash: 'L6PZfSjE.AyE_3t7t7R**0o#DgR4' }}
               />
             ) : (
               <View style={[styles.avatar, styles.defaultAvatar]}>
@@ -274,32 +317,59 @@ export const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
         )}
         
-        <View style={[
-          styles.messageBubble,
-          isOwnMessage ? styles.ownBubble : styles.partnerBubble
-        ]}>
-          {!isOwnMessage && (
+        {isOwnMessage ? (
+          <ChatBubble 
+            isOwn={isOwnMessage}
+            style={[
+              styles.bubbleContainer,
+              styles.ownBubbleContainer
+            ]}
+          >
+            <Text style={[
+              styles.messageText,
+              styles.ownMessageText
+            ]}>
+              {item.content}
+            </Text>
+            <Text style={[
+              styles.messageTime,
+              styles.ownMessageTime
+            ]}>
+              {new Date(item.sent_at).toLocaleTimeString('ja-JP', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              })}
+              {item.read_at && (
+                <Text style={styles.readStatus}> ✓✓</Text>
+              )}
+            </Text>
+          </ChatBubble>
+        ) : (
+          <ChatBubble 
+            isOwn={isOwnMessage}
+            style={[
+              styles.bubbleContainer,
+              styles.partnerBubbleContainer
+            ]}
+          >
             <Text style={styles.senderName}>{item.sender.display_name}</Text>
-          )}
-          <Text style={[
-            styles.messageText,
-            isOwnMessage ? styles.ownMessageText : styles.partnerMessageText
-          ]}>
-            {item.content}
-          </Text>
-          <Text style={[
-            styles.messageTime,
-            isOwnMessage ? styles.ownMessageTime : styles.partnerMessageTime
-          ]}>
-            {new Date(item.sent_at).toLocaleTimeString('ja-JP', { 
-              hour: '2-digit', 
-              minute: '2-digit' 
-            })}
-            {isOwnMessage && item.read_at && (
-              <Text style={styles.readStatus}> ✓✓</Text>
-            )}
-          </Text>
-        </View>
+            <Text style={[
+              styles.messageText,
+              styles.partnerMessageText
+            ]}>
+              {item.content}
+            </Text>
+            <Text style={[
+              styles.messageTime,
+              styles.partnerMessageTime
+            ]}>
+              {new Date(item.sent_at).toLocaleTimeString('ja-JP', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              })}
+            </Text>
+          </ChatBubble>
+        )}
       </View>
     )
   }
@@ -437,18 +507,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  messageBubble: {
+  bubbleContainer: {
     maxWidth: '75%',
-    padding: 12,
-    borderRadius: 18,
+    minHeight: 40,
   },
-  ownBubble: {
-    backgroundColor: '#007AFF',
+  ownBubbleContainer: {
     alignSelf: 'flex-end',
   },
-  partnerBubble: {
-    backgroundColor: '#fff',
+  partnerBubbleContainer: {
     alignSelf: 'flex-start',
+  },
+  partnerMessageBox: {
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: '#e0e0e0',
   },

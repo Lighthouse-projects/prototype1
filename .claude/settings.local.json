@@ -97,7 +97,8 @@
       "mcp__supabase__list_edge_functions",
       "Bash(supabase functions:*)",
       "mcp__supabase__get_organization",
-      "mcp__supabase__list_tables"
+      "mcp__supabase__list_tables",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

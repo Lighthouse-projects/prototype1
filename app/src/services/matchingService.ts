@@ -1,4 +1,7 @@
 import { supabase } from '../lib/supabase'
+import { AuthService } from './authService'
+import { ApiService } from './apiService'
+import { Logger } from '../utils/logger'
 
 export interface LikeData {
   id: string
@@ -32,24 +35,31 @@ export interface ProfileWithLike {
 export class MatchingService {
   static async findMatchWithPartner(partnerId: string): Promise<{ match_id: string } | null> {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('認証が必要です')
+      const user = await AuthService.getCurrentUser()
 
-      const { data: match, error } = await supabase
-        .from('matches')
-        .select('id')
-        .eq('status', 'matched')
-        .or(`and(user1_id.eq.${user.id},user2_id.eq.${partnerId}),and(user1_id.eq.${partnerId},user2_id.eq.${user.id})`)
-        .single()
+      try {
+        const match = await ApiService.executeQuery(
+          supabase
+            .from('matches')
+            .select('id')
+            .eq('status', 'matched')
+            .or(`and(user1_id.eq.${user.id},user2_id.eq.${partnerId}),and(user1_id.eq.${partnerId},user2_id.eq.${user.id})`)
+            .single(),
+          'MatchingService:findMatch'
+        )
 
-      if (error) {
-        console.log('No match found:', error)
+        return { match_id: match.id }
+      } catch (error: any) {
+        Logger.info('MatchingService', 'マッチが見つかりません', {
+          userId: user.id,
+          metadata: { partnerId, error: error.message }
+        })
         return null
       }
-
-      return { match_id: match.id }
     } catch (error: any) {
-      console.error('Error finding match:', error)
+      Logger.error('MatchingService:findMatchWithPartner', error, {
+        metadata: { partnerId }
+      })
       return null
     }
   }

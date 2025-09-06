@@ -1,4 +1,7 @@
 import { supabase } from '../lib/supabase'
+import { AuthService } from './authService'
+import { ApiService } from './apiService'
+import { Logger } from '../utils/logger'
 
 export interface ChatWithPartner {
   chat_room_id: string
@@ -35,69 +38,70 @@ export interface SendMessageResponse {
 export class ChatService {
   static async getChatRoomByMatchId(matchId: string): Promise<string | null> {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        throw new Error('認証が必要です')
-      }
+      const user = await AuthService.getCurrentUser()
 
       // まず、matchIdが自分に関連するものかチェック
-      const { data: matchData, error: matchError } = await supabase
-        .from('matches')
-        .select('id')
-        .eq('id', matchId)
-        .eq('status', 'matched')
-        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
-        .single()
+      const matchData = await ApiService.executeQuery(
+        supabase
+          .from('matches')
+          .select('id')
+          .eq('id', matchId)
+          .eq('status', 'matched')
+          .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
+          .single(),
+        'ChatService:checkMatch'
+      )
 
-      if (matchError || !matchData) {
-        console.log('マッチが見つからないかアクセス権限がありません')
+      if (!matchData) {
+        Logger.warn('ChatService', 'マッチが見つからないかアクセス権限がありません', {
+          userId: user.id,
+          metadata: { matchId }
+        })
         return null
       }
 
       // チャットルームを検索
-      const { data: chatRoom, error: chatRoomError } = await supabase
-        .from('chat_rooms')
-        .select('id')
-        .eq('match_id', matchId)
-        .single()
-
-      if (chatRoomError) {
+      try {
+        const chatRoom = await ApiService.executeQuery(
+          supabase
+            .from('chat_rooms')
+            .select('id')
+            .eq('match_id', matchId)
+            .single(),
+          'ChatService:getChatRoom'
+        )
+        
+        return chatRoom.id
+      } catch (error: any) {
         // チャットルームがまだ存在しない場合
-        console.log('チャットルームがまだ作成されていません')
+        Logger.info('ChatService', 'チャットルームがまだ作成されていません', {
+          userId: user.id,
+          metadata: { matchId }
+        })
         return null
       }
-
-      return chatRoom.id
     } catch (error: any) {
-      console.error('チャットルームID取得エラー:', error)
+      Logger.error('ChatService:getChatRoomByMatchId', error, {
+        metadata: { matchId }
+      })
       return null
     }
   }
 
   static async getChatList(): Promise<ChatWithPartner[]> {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        throw new Error('認証が必要です')
-      }
+      const response = await ApiService.callEdgeFunction<{ chats: ChatWithPartner[] }>(
+        'get-chat-list'
+      )
 
-      const { data, error } = await supabase.functions.invoke('get-chat-list', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      })
-
-      if (error) {
-        throw new Error(error.message || 'チャット一覧取得に失敗しました')
-      }
-
-      if (!data || !data.chats) {
+      if (!response.chats) {
         throw new Error('チャットデータが取得できませんでした')
       }
 
-      return data.chats
+      Logger.info('ChatService', `チャット一覧取得完了: ${response.chats.length}件`)
+      return response.chats
     } catch (error: any) {
-      console.error('チャット一覧取得エラー:', error)
+      Logger.error('ChatService:getChatList', error)
       throw new Error(error.message || 'チャット一覧の取得に失敗しました')
     }
   }
